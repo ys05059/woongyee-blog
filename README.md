@@ -1,36 +1,259 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# notion-based-next-blog
 
-## Getting Started
+A modern, minimal blog starter built with Next.js 15 and Notion as a CMS. Fork this repository and deploy your own blog in minutes by just configuring environment variables.
 
-First, run the development server:
+## ✨ Features
+
+- 📝 **Notion as CMS** - Write posts in Notion, publish automatically
+- 🎨 **Minimal Design** - Clean, typography-focused interface
+- 🚀 **Next.js 15** - App Router, Server Components, ISR
+- 🔍 **Full-text Search** - Search posts by title, excerpt, and tags
+- 🏷️ **Categories & Tags** - Organize posts with categories and tags
+- 💬 **Giscus Comments** - GitHub Discussions-powered comments
+- 📊 **Vercel Analytics** - Built-in analytics support
+- 🎯 **SEO Optimized** - Sitemap, robots.txt, JSON-LD structured data
+- 🖼️ **Dynamic OG Images** - Auto-generated Open Graph images
+- ⚡ **ISR & Revalidation** - On-demand or time-based content updates
+- 🌓 **Dark Mode Ready** - Theme support built-in
+- 📱 **Responsive** - Mobile-first design
+
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js 15.5.4 (App Router, Turbopack)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS 4
+- **CMS**: Notion API v5 (2025-09-03)
+- **Markdown**: unified, remark, rehype
+- **Deployment**: Vercel
+- **Analytics**: Vercel Analytics
+- **Comments**: Giscus (GitHub Discussions)
+
+## 🚀 Quick Start
+
+### 1. Fork this repository
+
+Click the "Fork" button at the top right of this page.
+
+### 2. Clone your forked repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/notion-based-next-blog.git
+cd notion-based-next-blog
+```
+
+### 3. Install dependencies
+
+```bash
+npm install
+```
+
+### 4. Set up Notion
+
+1. Create a [Notion Integration](https://www.notion.so/my-integrations)
+2. Create a Notion database with the following properties:
+   - `Title` (Title)
+   - `Slug` (Text)
+   - `Status` (Select: Published, Draft)
+   - `PublishDate` (Date)
+   - `Tags` (Multi-select)
+   - `Category` (Select)
+   - `Excerpt` (Text)
+   - `CoverImage` (URL) - optional
+   - `Featured` (Checkbox) - optional
+3. Share the database with your integration
+4. Copy the Database ID from the URL
+
+### 5. Configure environment variables
+
+Copy `docs/.env.example` to `.env.local`:
+
+```bash
+cp docs/.env.example .env.local
+```
+
+Edit `.env.local` with your values:
+
+```bash
+# Required
+NOTION_API_KEY=your_notion_integration_secret
+NOTION_DATABASE_ID=your_database_id
+
+# Blog Info
+NEXT_PUBLIC_BLOG_NAME=My Blog
+NEXT_PUBLIC_BLOG_DESCRIPTION=A blog powered by Notion
+NEXT_PUBLIC_BLOG_URL=https://yourdomain.com
+NEXT_PUBLIC_AUTHOR_NAME=Your Name
+NEXT_PUBLIC_AUTHOR_EMAIL=you@example.com
+
+# Optional: Giscus Comments
+NEXT_PUBLIC_GISCUS_REPO=username/repo
+NEXT_PUBLIC_GISCUS_REPO_ID=R_xxxxx
+NEXT_PUBLIC_GISCUS_CATEGORY=Announcements
+NEXT_PUBLIC_GISCUS_CATEGORY_ID=DIC_xxxxx
+
+# Optional: Analytics
+NEXT_PUBLIC_ENABLE_ANALYTICS=true
+
+# Optional: Revalidation Token
+REVALIDATE_TOKEN=your_random_token
+```
+
+### 6. Run development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📦 Deploy to Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### One-Click Deploy
 
-## Learn More
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/notion-based-next-blog)
 
-To learn more about Next.js, take a look at the following resources:
+### Manual Deploy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Push your repository to GitHub
+2. Go to [Vercel](https://vercel.com)
+3. Import your repository
+4. Add environment variables (same as `.env.local`)
+5. Deploy!
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Post-Deployment Setup
 
-## Deploy on Vercel
+#### On-Demand Revalidation (Optional)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Set up a Notion webhook to revalidate content when you publish:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+curl -X POST https://yourdomain.com/api/revalidate \
+  -H "Content-Type: application/json" \
+  -H "x-revalidate-token: YOUR_REVALIDATE_TOKEN" \
+  -d '{"tag": "posts"}'
+```
+
+**Note**: Notion webhooks require a public URL and are not available in local development.
+
+## 🎨 Customization
+
+### Homepage Settings
+
+Edit `blog.config.ts`:
+
+```typescript
+homepage: {
+  recentPostsCount: 9,    // Number of recent posts to show
+  categoriesCount: 6,      // Number of categories to show
+  tagsCount: 12,           // Number of tags to show
+}
+```
+
+### Navigation Menu
+
+Edit `blog.config.ts`:
+
+```typescript
+navigation: [
+  { name: 'Home', href: '/' },
+  { name: 'Blog', href: '/blog' },
+  { name: 'Categories', href: '/categories' },
+  { name: 'Tags', href: '/tags' },
+  { name: 'About', href: '/about' },
+]
+```
+
+### Notion Property Mapping
+
+If you use different property names in your Notion database, update `blog.config.ts`:
+
+```typescript
+propertyMapping: {
+  title: 'Title',
+  slug: 'Slug',
+  status: 'Status',
+  publishDate: 'PublishDate',
+  // ... customize as needed
+}
+```
+
+## 📝 Writing Posts
+
+1. Create a new page in your Notion database
+2. Fill in all required properties
+3. Write your content (supports all Notion blocks)
+4. Set `Status` to "Published"
+5. Your post will appear on your blog (revalidation time: 1 hour by default)
+
+## 🔧 Development
+
+### Project Structure
+
+```
+notion-based-next-blog/
+├── app/                          # Next.js App Router
+│   ├── about/                    # About page
+│   ├── api/                      # API routes
+│   │   ├── og/                   # OG image generation
+│   │   └── revalidate/           # On-demand revalidation
+│   ├── blog/                     # Blog pages
+│   │   └── [slug]/               # Dynamic post pages
+│   ├── categories/               # Category pages
+│   ├── tags/                     # Tag pages
+│   ├── search/                   # Search page
+│   └── layout.tsx                # Root layout
+├── components/                   # React components
+│   ├── blog/                     # Blog-specific components
+│   ├── common/                   # Shared components
+│   └── layout/                   # Layout components
+├── lib/                          # Utilities and libraries
+│   ├── notion/                   # Notion API integration
+│   └── utils/                    # Helper functions
+├── blog.config.ts                # Central configuration
+└── docs/                         # Documentation
+    ├── .env.example              # Environment variables template
+    ├── SETUP_GUIDE.md
+    ├── CONTRIBUTING.md
+    └── CHANGELOG.md
+```
+
+### Available Scripts
+
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+```
+
+## 📚 Documentation
+
+- [Setup Guide](./docs/SETUP_GUIDE.md) - Detailed setup instructions
+- [Contributing](./docs/CONTRIBUTING.md) - How to contribute
+- [Changelog](./docs/CHANGELOG.md) - Version history
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for details.
+
+## 📄 License
+
+MIT License - see [LICENSE](./LICENSE) for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Next.js](https://nextjs.org/)
+- Powered by [Notion API](https://developers.notion.com/)
+- Deployed on [Vercel](https://vercel.com/)
+- UI inspired by minimal design principles
+
+## 💬 Support
+
+If you have any questions or issues, please:
+1. Check the [Setup Guide](./docs/SETUP_GUIDE.md)
+2. Search [existing issues](https://github.com/YOUR_USERNAME/notion-based-next-blog/issues)
+3. Create a [new issue](https://github.com/YOUR_USERNAME/notion-based-next-blog/issues/new)
+
+---
+
+Made with ❤️ using Notion and Next.js
