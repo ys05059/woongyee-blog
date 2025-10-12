@@ -67,7 +67,7 @@ let cachedDataSourceId: string | null = null;
 
 /**
  * Data Source ID 가져오기 (캐싱)
- * v5 API에서는 databases.query 대신 dataSources.query를 사용해야 함
+ * v5 API (2025-09-03)에서는 databases.query 대신 dataSources.query를 사용해야 함
  */
 export async function getDataSourceId(): Promise<string> {
   // 이미 캐시된 경우 바로 반환
@@ -83,19 +83,22 @@ export async function getDataSourceId(): Promise<string> {
       database_id: databaseId,
     });
 
-    // v5 API: database.data_source.id를 사용
+    // v5 API: database.data_sources 배열에서 첫 번째 data source 사용
     // 타입 정의가 완전하지 않아 타입 단언 사용
-    const databaseWithSource = database as typeof database & {
-      data_source?: { id: string } | null;
+    const databaseWithSources = database as typeof database & {
+      data_sources?: Array<{ id: string; name: string }>;
     };
 
-    if (!databaseWithSource.data_source) {
+    if (!databaseWithSources.data_sources || databaseWithSources.data_sources.length === 0) {
       throw new Error(
-        'This database does not have a default data source. Please check your Notion database setup.'
+        'This database does not have any data sources. Please check your Notion database setup.'
       );
     }
 
-    cachedDataSourceId = databaseWithSource.data_source.id;
+    // 첫 번째 data source 사용 (대부분의 경우 하나만 존재)
+    cachedDataSourceId = databaseWithSources.data_sources[0].id;
+    console.log(`Using data source: ${databaseWithSources.data_sources[0].name} (ID: ${cachedDataSourceId})`);
+
     return cachedDataSourceId;
   } catch (error) {
     console.error('Error retrieving data source ID:', error);
