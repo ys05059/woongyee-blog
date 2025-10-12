@@ -38,11 +38,11 @@ export default function AboutPage() {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const socialLinks: Array<{ name: string; url: string }> = [
-    blogConfig.social.github && { name: 'GitHub', url: blogConfig.social.github },
-    blogConfig.social.twitter && { name: 'Twitter', url: blogConfig.social.twitter },
-    blogConfig.social.linkedin && { name: 'LinkedIn', url: blogConfig.social.linkedin },
-  ].filter((link): link is { name: string; url: string } => Boolean(link));
+  const socialLinks = [
+    { name: 'GitHub', url: blogConfig.social.github },
+    { name: 'Twitter', url: blogConfig.social.twitter },
+    { name: 'LinkedIn', url: blogConfig.social.linkedin },
+  ].filter((link) => link.url);
 
   return (
     <div className="min-h-screen bg-background relative">
