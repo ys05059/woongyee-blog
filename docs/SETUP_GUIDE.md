@@ -7,6 +7,7 @@ This guide provides detailed instructions for setting up your notion-based-next-
 - [Prerequisites](#prerequisites)
 - [Notion Setup](#notion-setup)
 - [Environment Variables](#environment-variables)
+- [Blog Customization](#blog-customization)
 - [Giscus Comments Setup](#giscus-comments-setup)
 - [Deployment](#deployment)
 - [Troubleshooting](#troubleshooting)
@@ -81,59 +82,83 @@ Copy the `database_id` part (32 characters, no hyphens).
 
 ## Environment Variables
 
+**Important**: Only sensitive information goes into environment variables. All blog customization (name, description, author, social links, etc.) is done in `blog.config.ts`.
+
 ### Required Variables
 
 ```bash
-# Notion Configuration
+# Notion API Configuration
 NOTION_API_KEY=secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 NOTION_DATABASE_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-### Blog Information
+That's it for required variables! Only 2 environment variables are mandatory.
+
+### Optional Variables
+
+**Giscus Comments** (if you want comments):
 
 ```bash
-# Blog Metadata
-NEXT_PUBLIC_BLOG_NAME=My Awesome Blog
-NEXT_PUBLIC_BLOG_DESCRIPTION=Thoughts on tech, design, and life
-NEXT_PUBLIC_BLOG_URL=https://yourdomain.com
-
-# Author Information
-NEXT_PUBLIC_AUTHOR_NAME=Your Name
-NEXT_PUBLIC_AUTHOR_EMAIL=you@example.com
+NEXT_PUBLIC_GISCUS_REPO=username/repository
+NEXT_PUBLIC_GISCUS_REPO_ID=R_xxxxxxxxxxxxxxx
+NEXT_PUBLIC_GISCUS_CATEGORY=Announcements
+NEXT_PUBLIC_GISCUS_CATEGORY_ID=DIC_xxxxxxxxxxxxxxx
 ```
 
-### Social Media Links (Optional)
+See [Giscus Comments Setup](#giscus-comments-setup) below for detailed instructions.
+
+**Revalidation Token** (recommended for security):
 
 ```bash
-NEXT_PUBLIC_GITHUB_URL=https://github.com/username
-NEXT_PUBLIC_TWITTER_URL=https://twitter.com/username
-NEXT_PUBLIC_LINKEDIN_URL=https://linkedin.com/in/username
-```
-
-### Feature Toggles
-
-```bash
-# Pagination
-NEXT_PUBLIC_POSTS_PER_PAGE=10
-
-# Analytics (Vercel Analytics)
-NEXT_PUBLIC_ENABLE_ANALYTICS=true
-
-# Google Analytics (optional)
-NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
-```
-
-### Revalidation Token (Optional but Recommended)
-
-Generate a random token for on-demand revalidation:
-
-```bash
-# macOS/Linux
-openssl rand -base64 32
-
-# Or use any random string generator
+# Generate with: openssl rand -base64 32
 REVALIDATE_TOKEN=your_very_secure_random_token_here
 ```
+
+## Blog Customization
+
+All blog information is configured in `blog.config.ts`. Open this file and update:
+
+```typescript
+// Blog meta information
+blog: {
+  name: 'My Blog',  // Change this!
+  description: 'A blog powered by Notion and Next.js',
+  url: 'https://yourdomain.com',  // Your domain
+  language: 'ko',
+  locale: 'ko_KR',
+},
+
+// Author information
+author: {
+  name: 'Your Name',  // Your name
+  email: 'your.email@example.com',
+},
+
+// Social media links
+social: {
+  github: 'https://github.com/yourusername',
+  twitter: 'https://twitter.com/yourusername',
+  linkedin: 'https://linkedin.com/in/yourusername',
+},
+
+// Homepage settings
+homepage: {
+  recentPostsCount: 9,
+  categoriesCount: 6,
+  tagsCount: 12,
+},
+
+// Navigation menu
+navigation: [
+  { name: 'Home', href: '/' },
+  { name: 'Blog', href: '/blog' },
+  { name: 'Categories', href: '/categories' },
+  { name: 'Tags', href: '/tags' },
+  { name: 'About', href: '/about' },
+],
+```
+
+No environment variables needed for any of this!
 
 ## Giscus Comments Setup
 
@@ -197,15 +222,23 @@ NEXT_PUBLIC_GISCUS_CATEGORY_ID=DIC_xxxxxxxxxxxxxxx
 
 ### Environment Variables in Vercel
 
-Add all variables from your `.env.local`:
+Add only the necessary variables (much simpler now!):
 
 1. Go to your project in Vercel
 2. Click "Settings" → "Environment Variables"
-3. Add each variable:
-   - Key: Variable name (e.g., `NOTION_API_KEY`)
-   - Value: Variable value
+3. Add these **required** variables:
+   - `NOTION_API_KEY`: Your Notion integration secret
+   - `NOTION_DATABASE_ID`: Your database ID
    - Environment: Select all (Production, Preview, Development)
-4. Click "Save"
+4. (Optional) Add Giscus variables if you want comments:
+   - `NEXT_PUBLIC_GISCUS_REPO`
+   - `NEXT_PUBLIC_GISCUS_REPO_ID`
+   - `NEXT_PUBLIC_GISCUS_CATEGORY`
+   - `NEXT_PUBLIC_GISCUS_CATEGORY_ID`
+5. (Optional) Add `REVALIDATE_TOKEN` for security
+6. Click "Save"
+
+**That's it! No need to add blog name, description, author, or social links - those are in `blog.config.ts`.**
 
 ### Custom Domain (Optional)
 
@@ -213,7 +246,7 @@ Add all variables from your `.env.local`:
 2. Click "Domains"
 3. Add your domain
 4. Follow DNS configuration instructions
-5. Update `NEXT_PUBLIC_BLOG_URL` with your custom domain
+5. Update `blog.url` in `blog.config.ts` with your custom domain
 
 ## Post-Deployment Configuration
 

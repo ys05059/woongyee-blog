@@ -26,26 +26,26 @@ export const blogConfig = {
     publishedStatus: 'Published',
   },
 
-  // 블로그 메타 정보
+  // 블로그 메타 정보 (직접 수정하세요)
   blog: {
-    name: process.env.NEXT_PUBLIC_BLOG_NAME || 'My Blog',
-    description: process.env.NEXT_PUBLIC_BLOG_DESCRIPTION || 'A blog powered by Notion',
-    url: process.env.NEXT_PUBLIC_BLOG_URL || 'https://example.com',
+    name: 'My Blog',
+    description: 'A blog powered by Notion and Next.js',
+    url: 'https://yourdomain.com',
     language: 'ko',
     locale: 'ko_KR',
   },
 
-  // 작성자 정보
+  // 작성자 정보 (직접 수정하세요)
   author: {
-    name: process.env.NEXT_PUBLIC_AUTHOR_NAME || 'Anonymous',
-    email: process.env.NEXT_PUBLIC_AUTHOR_EMAIL || '',
+    name: 'Your Name',
+    email: 'your.email@example.com',
   },
 
-  // 소셜 미디어 링크
+  // 소셜 미디어 링크 (직접 수정하세요)
   social: {
-    github: process.env.NEXT_PUBLIC_GITHUB_URL || '',
-    twitter: process.env.NEXT_PUBLIC_TWITTER_URL || '',
-    linkedin: process.env.NEXT_PUBLIC_LINKEDIN_URL || '',
+    github: 'https://github.com/yourusername',
+    twitter: 'https://twitter.com/yourusername',
+    linkedin: 'https://linkedin.com/in/yourusername',
   },
 
   // 기능 토글
@@ -53,7 +53,7 @@ export const blogConfig = {
     search: true,
     darkMode: true,
     comments: true,
-    analytics: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true',
+    analytics: true, // Vercel Analytics 사용
     pwa: false,
     tableOfContents: true,
     readingTime: true,
@@ -61,7 +61,7 @@ export const blogConfig = {
 
   // 페이지네이션 설정
   pagination: {
-    postsPerPage: Number(process.env.NEXT_PUBLIC_POSTS_PER_PAGE) || 10,
+    postsPerPage: 10,
   },
 
   // 홈페이지 설정

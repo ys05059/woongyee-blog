@@ -71,34 +71,44 @@ Copy `docs/.env.example` to `.env.local`:
 cp docs/.env.example .env.local
 ```
 
-Edit `.env.local` with your values:
+Edit `.env.local` with your Notion credentials:
 
 ```bash
-# Required
-NOTION_API_KEY=your_notion_integration_secret
-NOTION_DATABASE_ID=your_database_id
+# Required - Notion API
+NOTION_API_KEY=secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NOTION_DATABASE_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-# Blog Info
-NEXT_PUBLIC_BLOG_NAME=My Blog
-NEXT_PUBLIC_BLOG_DESCRIPTION=A blog powered by Notion
-NEXT_PUBLIC_BLOG_URL=https://yourdomain.com
-NEXT_PUBLIC_AUTHOR_NAME=Your Name
-NEXT_PUBLIC_AUTHOR_EMAIL=you@example.com
-
-# Optional: Giscus Comments
+# Optional - Giscus Comments (설정 방법은 docs/SETUP_GUIDE.md 참고)
 NEXT_PUBLIC_GISCUS_REPO=username/repo
 NEXT_PUBLIC_GISCUS_REPO_ID=R_xxxxx
 NEXT_PUBLIC_GISCUS_CATEGORY=Announcements
 NEXT_PUBLIC_GISCUS_CATEGORY_ID=DIC_xxxxx
 
-# Optional: Analytics
-NEXT_PUBLIC_ENABLE_ANALYTICS=true
-
-# Optional: Revalidation Token
+# Optional - Revalidation Token
 REVALIDATE_TOKEN=your_random_token
 ```
 
-### 6. Run development server
+### 6. Customize your blog
+
+Edit `blog.config.ts` to personalize your blog:
+
+```typescript
+blog: {
+  name: '내 블로그',  // 블로그 이름
+  description: '설명',  // 블로그 설명
+  url: 'https://yourdomain.com',  // 배포 URL
+},
+author: {
+  name: '홍길동',
+  email: 'your@email.com',
+},
+social: {
+  github: 'https://github.com/username',
+  // ...
+}
+```
+
+### 7. Run development server
 
 ```bash
 npm run dev
@@ -137,9 +147,28 @@ curl -X POST https://yourdomain.com/api/revalidate \
 
 ## 🎨 Customization
 
-### Homepage Settings
+All blog customization is done in `blog.config.ts`. No environment variables needed!
 
-Edit `blog.config.ts`:
+### Blog Information
+
+```typescript
+blog: {
+  name: 'My Blog',
+  description: 'A blog powered by Notion and Next.js',
+  url: 'https://yourdomain.com',
+},
+author: {
+  name: 'Your Name',
+  email: 'your.email@example.com',
+},
+social: {
+  github: 'https://github.com/yourusername',
+  twitter: 'https://twitter.com/yourusername',
+  linkedin: 'https://linkedin.com/in/yourusername',
+},
+```
+
+### Homepage Settings
 
 ```typescript
 homepage: {
@@ -150,8 +179,6 @@ homepage: {
 ```
 
 ### Navigation Menu
-
-Edit `blog.config.ts`:
 
 ```typescript
 navigation: [
@@ -165,7 +192,7 @@ navigation: [
 
 ### Notion Property Mapping
 
-If you use different property names in your Notion database, update `blog.config.ts`:
+If you use different property names in your Notion database:
 
 ```typescript
 propertyMapping: {
