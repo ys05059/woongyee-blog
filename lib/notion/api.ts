@@ -1,0 +1,219 @@
+/**
+ * Notion API 함수들
+ */
+
+import { getNotionClient, getN2MClient, getDataSourceId } from './client';
+import { parsePageToPost, parsePagesToPostMetas } from './parser';
+import { Post, PostMeta, NotionQueryOptions, PaginatedPosts } from './types';
+import { blogConfig } from '@/blog.config';
+import readingTime from 'reading-time';
+
+/**
+ * 발행된 포스트 목록 가져오기
+ */
+export async function getPublishedPosts(
+  options: NotionQueryOptions = {}
+): Promise<PostMeta[]> {
+  try {
+    const notion = getNotionClient();
+    const dataSourceId = await getDataSourceId();
+
+    const response = await notion.dataSources.query({
+      data_source_id: dataSourceId,
+      filter: {
+        property: blogConfig.notion.propertyMapping.status,
+        select: {
+          equals: blogConfig.notion.publishedStatus,
+        },
+      },
+      sorts: [
+        {
+          property: blogConfig.notion.propertyMapping.publishDate,
+          direction: 'descending',
+        },
+      ],
+      page_size: options.limit || 100,
+    });
+
+    // v5 API: results에는 pages와 data sources가 혼재될 수 있음
+    // Page 객체만 필터링
+    const pageResults = response.results.filter(
+      (result): result is typeof result & { object: 'page' } =>
+        'object' in result && result.object === 'page'
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const posts = parsePagesToPostMetas(pageResults as any);
+
+    // 필터링
+    let filteredPosts = posts;
+
+    if (options.tag) {
+      filteredPosts = filteredPosts.filter((post) =>
+        post.tags.includes(options.tag!)
+      );
+    }
+
+    if (options.category) {
+      filteredPosts = filteredPosts.filter(
+        (post) => post.category === options.category
+      );
+    }
+
+    if (options.featured !== undefined) {
+      filteredPosts = filteredPosts.filter(
+        (post) => post.featured === options.featured
+      );
+    }
+
+    return filteredPosts;
+  } catch (error) {
+    console.error('Error fetching published posts:', error);
+    throw new Error('Failed to fetch published posts from Notion');
+  }
+}
+
+/**
+ * Slug로 포스트 가져오기
+ */
+export async function getPostBySlug(slug: string): Promise<Post | null> {
+  try {
+    const notion = getNotionClient();
+    const n2m = getN2MClient();
+    const dataSourceId = await getDataSourceId();
+
+    // Slug로 페이지 검색
+    const response = await notion.dataSources.query({
+      data_source_id: dataSourceId,
+      filter: {
+        and: [
+          {
+            property: blogConfig.notion.propertyMapping.slug,
+            rich_text: {
+              equals: slug,
+            },
+          },
+          {
+            property: blogConfig.notion.propertyMapping.status,
+            select: {
+              equals: blogConfig.notion.publishedStatus,
+            },
+          },
+        ],
+      },
+    });
+
+    if (response.results.length === 0) {
+      return null;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const page = response.results[0] as any;
+
+    // Markdown 변환
+    const mdBlocks = await n2m.pageToMarkdown(page.id);
+    const mdString = n2m.toMarkdownString(mdBlocks);
+    const content = mdString.parent || '';
+
+    // Post 객체 생성
+    const post = parsePageToPost(page, content);
+
+    if (!post) return null;
+
+    // 읽기 시간 계산
+    const { text } = readingTime(content);
+    post.readingTime = text;
+
+    return post;
+  } catch (error) {
+    console.error(`Error fetching post with slug "${slug}":`, error);
+    return null;
+  }
+}
+
+/**
+ * 특정 태그의 포스트 가져오기
+ */
+export async function getPostsByTag(tag: string): Promise<PostMeta[]> {
+  return getPublishedPosts({ tag });
+}
+
+/**
+ * 특정 카테고리의 포스트 가져오기
+ */
+export async function getPostsByCategory(category: string): Promise<PostMeta[]> {
+  return getPublishedPosts({ category });
+}
+
+/**
+ * Featured 포스트 가져오기
+ */
+export async function getFeaturedPosts(): Promise<PostMeta[]> {
+  return getPublishedPosts({ featured: true });
+}
+
+/**
+ * 모든 태그 목록 가져오기
+ */
+export async function getAllTags(): Promise<string[]> {
+  const posts = await getPublishedPosts();
+  const tagsSet = new Set<string>();
+
+  posts.forEach((post) => {
+    post.tags.forEach((tag) => tagsSet.add(tag));
+  });
+
+  return Array.from(tagsSet).sort();
+}
+
+/**
+ * 모든 카테고리 목록 가져오기
+ */
+export async function getAllCategories(): Promise<string[]> {
+  const posts = await getPublishedPosts();
+  const categoriesSet = new Set<string>();
+
+  posts.forEach((post) => {
+    if (post.category) categoriesSet.add(post.category);
+  });
+
+  return Array.from(categoriesSet).sort();
+}
+
+/**
+ * 페이지네이션된 포스트 가져오기
+ */
+export async function getPaginatedPosts(
+  page = 1,
+  limit?: number
+): Promise<PaginatedPosts> {
+  const postsPerPage = limit || blogConfig.pagination.postsPerPage;
+  const allPosts = await getPublishedPosts();
+
+  const startIndex = (page - 1) * postsPerPage;
+  const endIndex = startIndex + postsPerPage;
+
+  const posts = allPosts.slice(startIndex, endIndex);
+  const hasMore = endIndex < allPosts.length;
+
+  return {
+    posts,
+    hasMore,
+    total: allPosts.length,
+  };
+}
+
+/**
+ * 포스트 검색
+ */
+export async function searchPosts(query: string): Promise<PostMeta[]> {
+  const allPosts = await getPublishedPosts();
+  const lowercaseQuery = query.toLowerCase();
+
+  return allPosts.filter(
+    (post) =>
+      post.title.toLowerCase().includes(lowercaseQuery) ||
+      post.excerpt.toLowerCase().includes(lowercaseQuery) ||
+      post.tags.some((tag) => tag.toLowerCase().includes(lowercaseQuery))
+  );
+}
