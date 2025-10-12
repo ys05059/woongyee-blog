@@ -6,3 +6,4 @@ export * from './cn';
 export * from './formatter';
 export * from './revalidate';
 export * from './markdown';
+export * from './jsonld';

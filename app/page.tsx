@@ -7,13 +7,22 @@ import Link from 'next/link';
 import { getPublishedPosts } from '@/lib/notion';
 import { PostCard } from '@/components/blog/PostCard';
 import { blogConfig } from '@/blog.config';
+import { generateWebSiteJsonLd } from '@/lib/utils';
 
 export default async function HomePage() {
   // unstable_cache로 캐싱됨 (blog.config.ts의 revalidate.postList 값 사용)
   const posts = await getPublishedPosts({ limit: 6 });
+  const jsonLd = generateWebSiteJsonLd();
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <>
+      {/* JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      <div className="container mx-auto px-4 py-12">
       {/* Hero Section */}
       <section className="mb-16 text-center">
         <h1 className="text-4xl md:text-6xl font-bold mb-4">
@@ -53,6 +62,7 @@ export default async function HomePage() {
           </div>
         )}
       </section>
-    </div>
+      </div>
+    </>
   );
 }

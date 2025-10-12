@@ -4,7 +4,8 @@
 
 import { notFound } from 'next/navigation';
 import { getPostBySlug, getPublishedPosts } from '@/lib/notion';
-import { formatDate } from '@/lib/utils';
+import { formatDate, generateArticleJsonLd } from '@/lib/utils';
+import { Comments } from '@/components/blog/Comments';
 import type { Metadata } from 'next';
 
 interface PostPageProps {
@@ -34,6 +35,8 @@ export async function generateMetadata({
     };
   }
 
+  const ogImage = post.coverImage || `/api/og?title=${encodeURIComponent(post.title)}&description=${encodeURIComponent(post.excerpt)}`;
+
   return {
     title: post.title,
     description: post.excerpt,
@@ -43,6 +46,13 @@ export async function generateMetadata({
       type: 'article',
       publishedTime: post.publishDate,
       tags: post.tags,
+      images: [ogImage],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt,
+      images: [ogImage],
     },
   };
 }
@@ -55,10 +65,19 @@ export default async function PostPage({ params }: PostPageProps) {
     notFound();
   }
 
+  const jsonLd = generateArticleJsonLd(post);
+
   return (
-    <article className="container mx-auto px-4 py-12 max-w-4xl">
-      {/* 헤더 */}
-      <header className="mb-8">
+    <>
+      {/* JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      <article className="container mx-auto px-4 py-12 max-w-4xl">
+        {/* 헤더 */}
+        <header className="mb-8">
         <h1 className="text-4xl md:text-5xl font-bold mb-4">{post.title}</h1>
 
         {/* 메타 정보 */}
@@ -86,9 +105,15 @@ export default async function PostPage({ params }: PostPageProps) {
       </header>
 
       {/* 본문 */}
-      <div className="prose prose-neutral dark:prose-invert max-w-none">
+      <div className="prose prose-neutral dark:prose-invert max-w-none mb-16">
         <div dangerouslySetInnerHTML={{ __html: post.content }} />
       </div>
-    </article>
+
+        {/* 댓글 */}
+        <div className="border-t pt-8">
+          <Comments />
+        </div>
+      </article>
+    </>
   );
 }

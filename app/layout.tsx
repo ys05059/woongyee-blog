@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header, Footer } from "@/components/layout";
 import { blogConfig } from "@/blog.config";
+import { Analytics } from "@vercel/analytics/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,6 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(blogConfig.blog.url),
   title: {
     default: blogConfig.blog.name,
     template: `%s | ${blogConfig.blog.name}`,
@@ -53,6 +55,7 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer />
         </div>
+        {blogConfig.features.analytics && <Analytics />}
       </body>
     </html>
   );

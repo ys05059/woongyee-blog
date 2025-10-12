@@ -5,6 +5,7 @@
 
 import Link from 'next/link';
 import { blogConfig } from '@/blog.config';
+import { SearchBar } from '@/components/common';
 
 export function Header() {
   return (
@@ -18,18 +19,21 @@ export function Header() {
           <span>{blogConfig.blog.name}</span>
         </Link>
 
-        {/* 네비게이션 */}
-        <nav className="flex items-center space-x-6 text-sm font-medium">
-          {blogConfig.navigation.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="transition-colors hover:text-foreground/80 text-foreground/60"
-            >
-              {item.name}
-            </Link>
-          ))}
-        </nav>
+        {/* 네비게이션 & 검색 */}
+        <div className="flex items-center gap-6">
+          <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+            {blogConfig.navigation.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+          <SearchBar />
+        </div>
       </div>
     </header>
   );
