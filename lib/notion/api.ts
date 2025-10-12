@@ -2,16 +2,18 @@
  * Notion API 함수들
  */
 
+import { unstable_cache } from 'next/cache';
 import { getNotionClient, getN2MClient, getDataSourceId } from './client';
 import { parsePageToPost, parsePagesToPostMetas } from './parser';
 import { Post, PostMeta, NotionQueryOptions, PaginatedPosts } from './types';
 import { blogConfig } from '@/blog.config';
 import readingTime from 'reading-time';
+import { markdownToHtml } from '@/lib/utils/markdown';
 
 /**
- * 발행된 포스트 목록 가져오기
+ * 발행된 포스트 목록 가져오기 (내부 함수)
  */
-export async function getPublishedPosts(
+async function getPublishedPostsInternal(
   options: NotionQueryOptions = {}
 ): Promise<PostMeta[]> {
   try {
@@ -74,6 +76,19 @@ export async function getPublishedPosts(
 }
 
 /**
+ * 발행된 포스트 목록 가져오기 (캐시 적용)
+ * blog.config.ts의 revalidate.postList 값으로 자동 갱신
+ */
+export const getPublishedPosts = unstable_cache(
+  getPublishedPostsInternal,
+  ['published-posts'],
+  {
+    revalidate: blogConfig.revalidate.postList,
+    tags: ['posts'],
+  }
+);
+
+/**
  * Slug로 포스트 가져오기
  */
 export async function getPostBySlug(slug: string): Promise<Post | null> {
@@ -113,15 +128,18 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
     // Markdown 변환
     const mdBlocks = await n2m.pageToMarkdown(page.id);
     const mdString = n2m.toMarkdownString(mdBlocks);
-    const content = mdString.parent || '';
+    const markdownContent = mdString.parent || '';
+
+    // HTML로 변환
+    const htmlContent = await markdownToHtml(markdownContent);
 
     // Post 객체 생성
-    const post = parsePageToPost(page, content);
+    const post = parsePageToPost(page, htmlContent);
 
     if (!post) return null;
 
-    // 읽기 시간 계산
-    const { text } = readingTime(content);
+    // 읽기 시간 계산 (원본 마크다운 기준)
+    const { text } = readingTime(markdownContent);
     post.readingTime = text;
 
     return post;
