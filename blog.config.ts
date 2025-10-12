@@ -64,6 +64,13 @@ export const blogConfig = {
     postsPerPage: Number(process.env.NEXT_PUBLIC_POSTS_PER_PAGE) || 10,
   },
 
+  // 홈페이지 설정
+  homepage: {
+    recentPostsCount: 9, // 홈페이지에 표시할 최신 포스트 수
+    categoriesCount: 6, // 홈페이지에 표시할 카테고리 수
+    tagsCount: 12, // 홈페이지에 표시할 태그 수
+  },
+
   // Giscus 댓글 설정
   giscus: {
     repo: process.env.NEXT_PUBLIC_GISCUS_REPO || '',
@@ -90,6 +97,8 @@ export const blogConfig = {
   navigation: [
     { name: 'Home', href: '/' },
     { name: 'Blog', href: '/blog' },
+    { name: 'Categories', href: '/categories' },
+    { name: 'Tags', href: '/tags' },
     { name: 'About', href: '/about' },
   ],
 
