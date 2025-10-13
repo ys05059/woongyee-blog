@@ -235,3 +235,39 @@ export async function searchPosts(query: string): Promise<PostMeta[]> {
       post.tags.some((tag) => tag.toLowerCase().includes(lowercaseQuery))
   );
 }
+
+/**
+ * 페이지 ID로 slug 조회하기
+ * Webhook에서 페이지 ID를 받아 해당 포스트의 slug를 찾는데 사용
+ */
+export async function getPostSlugByPageId(pageId: string): Promise<string | null> {
+  try {
+    const notion = getNotionClient();
+
+    // 페이지 정보 가져오기
+    const page = await notion.pages.retrieve({ page_id: pageId });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pageWithProperties = page as any;
+
+    // Slug 속성 추출
+    const slugProperty = pageWithProperties.properties[blogConfig.notion.propertyMapping.slug];
+
+    if (!slugProperty || slugProperty.type !== 'rich_text') {
+      console.warn(`Page ${pageId} does not have a valid slug property`);
+      return null;
+    }
+
+    const slug = slugProperty.rich_text?.[0]?.plain_text || null;
+
+    if (!slug) {
+      console.warn(`Page ${pageId} has empty slug`);
+      return null;
+    }
+
+    return slug;
+  } catch (error) {
+    console.error(`Error fetching slug for page "${pageId}":`, error);
+    return null;
+  }
+}
