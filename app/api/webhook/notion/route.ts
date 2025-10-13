@@ -25,6 +25,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { getPostSlugByPageId } from '@/lib/notion/api';
+import { extractAndUploadImages } from '@/lib/notion/images';
 import crypto from 'crypto';
 
 // Notion Webhook 이벤트 타입 정의
@@ -185,6 +186,16 @@ export async function POST(request: NextRequest) {
         }
 
         console.log(`Processing published page: ${slug}`);
+
+        // 이미지 추출 및 Cloudinary 업로드
+        try {
+          console.log(`Extracting and uploading images for page ${pageId}...`);
+          const imageInfos = await extractAndUploadImages(pageId);
+          console.log(`✓ Processed ${imageInfos.length} images`);
+        } catch (error) {
+          console.error(`Failed to process images for page ${pageId}:`, error);
+          // 이미지 처리 실패해도 revalidation은 계속 진행
+        }
 
         // 해당 블로그 포스트 페이지 재검증
         try {

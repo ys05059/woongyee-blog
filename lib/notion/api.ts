@@ -9,6 +9,11 @@ import { Post, PostMeta, NotionQueryOptions, PaginatedPosts } from './types';
 import { blogConfig } from '@/blog.config';
 import readingTime from 'reading-time';
 import { markdownToHtml } from '@/lib/utils/markdown';
+import {
+  extractAndUploadImages,
+  createImageMapping,
+  replaceImageUrls,
+} from './images';
 
 /**
  * 발행된 포스트 목록 가져오기 (내부 함수)
@@ -45,7 +50,7 @@ async function getPublishedPostsInternal(
     );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const posts = parsePagesToPostMetas(pageResults as any);
+    const posts = await parsePagesToPostMetas(pageResults as any);
 
     // 필터링
     let filteredPosts = posts;
@@ -125,16 +130,32 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const page = response.results[0] as any;
 
+    // 이미지 추출 및 Cloudinary 업로드
+    let imageMapping: Record<string, string> = {};
+    try {
+      const imageInfos = await extractAndUploadImages(page.id);
+      imageMapping = createImageMapping(imageInfos);
+      console.log(`[Post] Created image mapping with ${Object.keys(imageMapping).length} images`);
+    } catch (error) {
+      console.error('[Post] Failed to process images:', error);
+      // 이미지 처리 실패해도 원본 콘텐츠는 사용 가능
+    }
+
     // Markdown 변환
     const mdBlocks = await n2m.pageToMarkdown(page.id);
     const mdString = n2m.toMarkdownString(mdBlocks);
-    const markdownContent = mdString.parent || '';
+    let markdownContent = mdString.parent || '';
+
+    // Notion 이미지 URL을 Cloudinary URL로 교체
+    if (Object.keys(imageMapping).length > 0) {
+      markdownContent = replaceImageUrls(markdownContent, imageMapping);
+    }
 
     // HTML로 변환
     const htmlContent = await markdownToHtml(markdownContent);
 
     // Post 객체 생성
-    const post = parsePageToPost(page, htmlContent);
+    const post = await parsePageToPost(page, htmlContent);
 
     if (!post) return null;
 

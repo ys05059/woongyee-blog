@@ -203,6 +203,45 @@ h6 { font-size: 1rem; }
   margin: 1.5em 0;
 }
 
+/* Image placeholder for broken images */
+.prose img {
+  position: relative;
+  min-height: 200px;
+  background: linear-gradient(135deg, var(--muted) 0%, var(--secondary) 100%);
+  display: inline-block;
+}
+
+.prose img[alt]::after {
+  content: attr(alt);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  padding: 1rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-style: italic;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-width: 90%;
+  display: none;
+}
+
+.prose img[alt]:not([src]),
+.prose img[alt][src=""] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prose img[alt]:not([src])::after,
+.prose img[alt][src=""]::after {
+  display: block;
+  position: static;
+  transform: none;
+}
+
 .prose table {
   width: 100%;
   border-collapse: collapse;
