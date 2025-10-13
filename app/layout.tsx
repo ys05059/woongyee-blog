@@ -39,7 +39,9 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: blogConfig.blog.name,
     description: blogConfig.blog.description,
-    creator: blogConfig.social.twitter ? `@${blogConfig.social.twitter.split('/').pop()}` : undefined,
+    creator: blogConfig.social.twitter
+      ? `@${blogConfig.social.twitter.split("/").pop()}`
+      : undefined,
   },
 };
 
