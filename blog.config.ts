@@ -6,46 +6,46 @@
 export const blogConfig = {
   // Notion 설정
   notion: {
-    apiKey: process.env.NOTION_API_KEY || '',
-    databaseId: process.env.NOTION_DATABASE_ID || '',
+    apiKey: process.env.NOTION_API_KEY || "",
+    databaseId: process.env.NOTION_DATABASE_ID || "",
 
     // Notion 데이터베이스 속성 매핑 (커스터마이징 가능)
     propertyMapping: {
-      title: 'Title',
-      slug: 'Slug',
-      status: 'Status',
-      publishDate: 'PublishDate',
-      tags: 'Tags',
-      category: 'Category',
-      excerpt: 'Excerpt',
-      coverImage: 'CoverImage',
-      featured: 'Featured',
+      title: "Title",
+      slug: "Slug",
+      status: "Status",
+      publishDate: "PublishDate",
+      tags: "Tags",
+      category: "Category",
+      excerpt: "Excerpt",
+      coverImage: "CoverImage",
+      featured: "Featured",
     },
 
     // 발행 상태 값
-    publishedStatus: 'Published',
+    publishedStatus: "Published",
   },
 
-  // 블로그 메타 정보 (직접 수정하세요)
+  // 블로그 메타 정보
   blog: {
-    name: 'My Blog',
-    description: 'A blog powered by Notion and Next.js',
+    name: "Woongyee's Blog",
+    description: "A blog powered by Notion and Next.js",
     url: process.env.NEXT_PUBLIC_BLOG_URL as string,
-    language: 'ko',
-    locale: 'ko_KR',
+    language: "ko",
+    locale: "ko_KR",
   },
 
   // 작성자 정보 (직접 수정하세요)
   author: {
-    name: 'Your Name',
-    email: 'your.email@example.com',
+    name: "JaeWoong Choi",
+    email: "ys05059@gmail.com",
   },
 
   // 소셜 미디어 링크 (직접 수정하세요)
   social: {
-    github: 'https://github.com/yourusername',
-    twitter: 'https://twitter.com/yourusername',
-    linkedin: 'https://linkedin.com/in/yourusername',
+    github: "https://github.com/ys05059",
+    twitter: "https://twitter.com/yourusername",
+    linkedin: "https://linkedin.com/in/yourusername",
   },
 
   // 기능 토글
@@ -73,33 +73,33 @@ export const blogConfig = {
 
   // Giscus 댓글 설정
   giscus: {
-    repo: process.env.NEXT_PUBLIC_GISCUS_REPO || '',
-    repoId: process.env.NEXT_PUBLIC_GISCUS_REPO_ID || '',
-    category: process.env.NEXT_PUBLIC_GISCUS_CATEGORY || '',
-    categoryId: process.env.NEXT_PUBLIC_GISCUS_CATEGORY_ID || '',
+    repo: process.env.NEXT_PUBLIC_GISCUS_REPO || "",
+    repoId: process.env.NEXT_PUBLIC_GISCUS_REPO_ID || "",
+    category: process.env.NEXT_PUBLIC_GISCUS_CATEGORY || "",
+    categoryId: process.env.NEXT_PUBLIC_GISCUS_CATEGORY_ID || "",
   },
 
   // Google Analytics
   analytics: {
-    gaId: process.env.NEXT_PUBLIC_GA_ID || '',
+    gaId: process.env.NEXT_PUBLIC_GA_ID || "",
   },
 
   // 테마 설정
   theme: {
-    primaryColor: '#3B82F6', // blue-500
+    primaryColor: "#3B82F6", // blue-500
     fontFamily: {
-      sans: 'var(--font-geist-sans)',
-      mono: 'var(--font-geist-mono)',
+      sans: "var(--font-geist-sans)",
+      mono: "var(--font-geist-mono)",
     },
   },
 
   // 네비게이션 메뉴
   navigation: [
-    { name: 'Home', href: '/' },
-    { name: 'Blog', href: '/blog' },
-    { name: 'Categories', href: '/categories' },
-    { name: 'Tags', href: '/tags' },
-    { name: 'About', href: '/about' },
+    { name: "Home", href: "/" },
+    { name: "Blog", href: "/blog" },
+    { name: "Categories", href: "/categories" },
+    { name: "Tags", href: "/tags" },
+    { name: "About", href: "/about" },
   ],
 
   // ISR 설정
