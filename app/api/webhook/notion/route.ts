@@ -3,15 +3,20 @@
  * Notion 데이터베이스의 페이지가 변경되면 자동으로 해당 포스트를 재검증
  *
  * 처리 가능한 이벤트:
- * - page_created: 새 페이지 생성 시 → 해당 포스트 + 목록 재검증
- * - page_content_updated: 페이지 업데이트 시 → 해당 포스트 + 목록 재검증
- * - page_deleted: 페이지 삭제 시 → 목록 재검증
+ * - page.created: 새 페이지 생성 시 → Published면 포스트 + 목록 재검증
+ * - page.content_updated: 페이지 내용 업데이트 시 → Published면 포스트 + 목록 재검증
+ * - page.properties_updated: 페이지 속성 업데이트 시 (Status 변경 포함) → Published면 포스트 + 목록 재검증
+ * - page.deleted: 페이지 삭제 시 → 목록 재검증
+ *
+ * Draft 필터링:
+ * - Status가 "Published"가 아닌 페이지는 재검증하지 않음
+ * - Draft → Published 전환 시 page.properties_updated 이벤트로 감지
  *
  * Notion Integration 설정:
  * 1. https://www.notion.so/my-integrations 에서 Integration 생성
  * 2. Capabilities에서 "Read content" 권한 활성화
  * 3. Webhooks 섹션에서 webhook 추가:
- *    - Event Subscriptions: "Page created", "Page content updated", "Page deleted"
+ *    - Event Subscriptions: "Page updated" (모든 page.* 이벤트 포함)
  *    - Endpoint URL: https://yourdomain.com/api/webhook/notion
  *    - Filter: 블로그 데이터베이스 선택
  * 4. Integration을 블로그 데이터베이스에 연결
@@ -23,8 +28,15 @@ import crypto from 'crypto';
 
 // Notion Webhook 이벤트 타입 정의
 interface NotionWebhookEvent {
-  type: 'page_content_updated' | 'page_created' | 'page_deleted';
-  page_id: string;
+  type:
+    | 'page.created'
+    | 'page.content_updated'
+    | 'page.properties_updated'
+    | 'page.deleted';
+  entity: {
+    id: string;
+    type: 'page';
+  };
   workspace_id?: string;
 }
 
@@ -114,10 +126,10 @@ export async function POST(request: NextRequest) {
     // 각 이벤트 처리
     const results = await Promise.allSettled(
       events.map(async (event) => {
-        const pageId = event.page_id;
+        const pageId = event.entity?.id;
         if (!pageId) {
-          console.warn('No page_id in webhook event');
-          return { error: 'No page_id' };
+          console.warn('No page ID in webhook event');
+          return { error: 'No page ID' };
         }
 
         // Revalidate API 호출을 위한 공통 설정
@@ -132,7 +144,7 @@ export async function POST(request: NextRequest) {
                        'http://localhost:3000';
 
         // 페이지 삭제 이벤트 처리
-        if (event.type === 'page_deleted') {
+        if (event.type === 'page.deleted') {
           console.log(`Page deleted: ${pageId} - revalidating blog list`);
 
           // 삭제된 페이지는 정보를 가져올 수 없으므로 전체 목록만 재검증
@@ -162,31 +174,36 @@ export async function POST(request: NextRequest) {
         }
 
         // 페이지 생성/업데이트 이벤트 처리
-        console.log(`Page ${event.type === 'page_created' ? 'created' : 'updated'}: ${pageId}`);
+        const eventTypeLabel =
+          event.type === 'page.created' ? 'created' :
+          event.type === 'page.properties_updated' ? 'properties updated' :
+          event.type === 'page.content_updated' ? 'content updated' : 'updated';
 
-        // 페이지 ID로 slug 조회
-        const slug = await getPostSlugByPageId(pageId);
+        console.log(`Page ${eventTypeLabel}: ${pageId}`);
 
-        if (!slug) {
-          console.warn(`Could not find slug for page ${pageId} - might not be a published post`);
-          // Slug를 못 찾아도 목록은 재검증 (발행 상태가 변경되었을 수 있음)
-          await fetch(`${baseUrl}/api/revalidate`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-revalidate-token': revalidateToken,
-            },
-            body: JSON.stringify({ tag: 'posts' }),
-          });
+        // 페이지 ID로 slug와 발행 상태 조회
+        const pageInfo = await getPostSlugByPageId(pageId);
 
+        if (!pageInfo) {
+          console.warn(`Could not fetch page info for ${pageId}`);
+          return { error: 'Failed to fetch page info', pageId };
+        }
+
+        const { slug, isPublished } = pageInfo;
+
+        // Draft 상태면 skip (Published가 아니면 처리하지 않음)
+        if (!isPublished) {
+          console.log(`Page ${pageId} is not published (Draft) - skipping revalidation`);
           return {
             success: true,
             type: event.type,
             pageId,
-            note: 'Slug not found, revalidated list only',
-            revalidated: ['tag:posts']
+            skipped: true,
+            reason: 'Page is not published'
           };
         }
+
+        console.log(`Processing published page: ${slug}`);
 
         // 해당 블로그 포스트 페이지 재검증
         const revalidateResponse = await fetch(`${baseUrl}/api/revalidate`, {
@@ -236,16 +253,18 @@ export async function POST(request: NextRequest) {
     );
 
     // 결과 요약
-    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success && !r.value.skipped).length;
+    const skipped = results.filter(r => r.status === 'fulfilled' && r.value.skipped).length;
     const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error)).length;
 
-    console.log(`Webhook processing complete: ${successful} successful, ${failed} failed`);
+    console.log(`Webhook processing complete: ${successful} successful, ${skipped} skipped (Draft), ${failed} failed`);
 
     return NextResponse.json({
       success: true,
       processed: events.length,
       results: {
         successful,
+        skipped,
         failed,
       },
       details: results.map(r => r.status === 'fulfilled' ? r.value : { error: r.reason }),

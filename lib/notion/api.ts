@@ -237,10 +237,12 @@ export async function searchPosts(query: string): Promise<PostMeta[]> {
 }
 
 /**
- * 페이지 ID로 slug 조회하기
- * Webhook에서 페이지 ID를 받아 해당 포스트의 slug를 찾는데 사용
+ * 페이지 ID로 slug와 발행 상태 조회하기
+ * Webhook에서 페이지 ID를 받아 해당 포스트의 slug와 발행 상태를 확인하는데 사용
  */
-export async function getPostSlugByPageId(pageId: string): Promise<string | null> {
+export async function getPostSlugByPageId(
+  pageId: string
+): Promise<{ slug: string; isPublished: boolean } | null> {
   try {
     const notion = getNotionClient();
 
@@ -249,6 +251,13 @@ export async function getPostSlugByPageId(pageId: string): Promise<string | null
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pageWithProperties = page as any;
+
+    // Status 속성 확인 (Published인지 체크)
+    const statusProperty = pageWithProperties.properties[blogConfig.notion.propertyMapping.status];
+    const status = statusProperty?.select?.name || '';
+    const isPublished = status === blogConfig.notion.publishedStatus;
+
+    console.log(`Page ${pageId}: Status = ${status}, Published = ${isPublished}`);
 
     // Slug 속성 추출
     const slugProperty = pageWithProperties.properties[blogConfig.notion.propertyMapping.slug];
@@ -265,7 +274,7 @@ export async function getPostSlugByPageId(pageId: string): Promise<string | null
       return null;
     }
 
-    return slug;
+    return { slug, isPublished };
   } catch (error) {
     console.error(`Error fetching slug for page "${pageId}":`, error);
     return null;
