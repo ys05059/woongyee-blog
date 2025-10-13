@@ -30,17 +30,35 @@ interface NotionWebhookEvent {
 
 /**
  * HMAC-SHA256 서명 검증
+ * Notion webhook signature format: "sha256=<hex>"
  */
 function verifySignature(body: string, signature: string, secret: string): boolean {
+  // body를 파싱한 후 다시 JSON.stringify (Notion 문서 방식)
+  const parsedBody = JSON.parse(body);
+  const stringifiedBody = JSON.stringify(parsedBody);
+
+  // 서명 계산: sha256=<hex> 형식
   const hmac = crypto.createHmac('sha256', secret);
-  hmac.update(body);
-  const expectedSignature = hmac.digest('hex');
+  hmac.update(stringifiedBody);
+  const calculatedSignature = `sha256=${hmac.digest('hex')}`;
+
+  console.log('Signature verification:', {
+    received: signature,
+    calculated: calculatedSignature,
+    match: signature === calculatedSignature
+  });
 
   // Timing attack 방지를 위한 constant-time 비교
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(calculatedSignature)
+    );
+  } catch (error) {
+    console.error('timingSafeEqual error:', error);
+    // 길이가 다르면 timingSafeEqual이 에러 발생하므로 일반 비교
+    return signature === calculatedSignature;
+  }
 }
 
 export async function POST(request: NextRequest) {
