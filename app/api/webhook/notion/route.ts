@@ -142,6 +142,10 @@ export async function POST(request: NextRequest) {
           try {
             revalidateTag('posts');
             console.log('Successfully revalidated posts tag');
+
+            // Sitemap도 재검증 (삭제된 포스트 sitemap에서 제거)
+            revalidatePath('/sitemap.xml');
+            console.log('Successfully revalidated sitemap');
           } catch (error) {
             console.error('Revalidation error:', error);
             return { error: 'Revalidation failed', details: error instanceof Error ? error.message : 'Unknown error' };
@@ -205,6 +209,10 @@ export async function POST(request: NextRequest) {
           // 블로그 목록 페이지도 재검증 (새 포스트나 업데이트된 포스트 반영)
           revalidateTag('posts');
           console.log('Successfully revalidated posts tag');
+
+          // Sitemap 재검증 (새 포스트 추가/삭제 시 sitemap 업데이트)
+          revalidatePath('/sitemap.xml');
+          console.log('Successfully revalidated sitemap');
         } catch (error) {
           console.error('Revalidation error:', error);
           return { error: 'Revalidation failed', details: error instanceof Error ? error.message : 'Unknown error' };

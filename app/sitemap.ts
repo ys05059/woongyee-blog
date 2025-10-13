@@ -1,8 +1,9 @@
 /**
  * Sitemap 생성
+ * 빌드 타임에 정적 생성 + On-Demand Revalidation (Webhook 기반)
  */
 
-import { MetadataRoute } from 'next';
+import type { MetadataRoute } from 'next';
 import { getPublishedPosts } from '@/lib/notion';
 import { blogConfig } from '@/blog.config';
 
@@ -11,32 +12,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = blogConfig.blog.url;
 
   // 정적 페이지
-  const staticPages = [
+  const staticPages: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
       lastModified: new Date(),
-      changeFrequency: 'daily' as const,
+      changeFrequency: 'daily',
       priority: 1,
     },
     {
       url: `${baseUrl}/blog`,
       lastModified: new Date(),
-      changeFrequency: 'daily' as const,
+      changeFrequency: 'daily',
       priority: 0.9,
     },
     {
       url: `${baseUrl}/about`,
       lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
+      changeFrequency: 'monthly',
       priority: 0.5,
     },
   ];
 
   // 블로그 포스트
-  const postPages = posts.map((post) => ({
+  const postPages: MetadataRoute.Sitemap = posts.map((post) => ({
     url: `${baseUrl}/blog/${post.slug}`,
     lastModified: new Date(post.publishDate),
-    changeFrequency: 'weekly' as const,
+    changeFrequency: 'weekly',
     priority: 0.8,
   }));
 
