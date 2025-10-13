@@ -43,12 +43,6 @@ Notion 페이지 업데이트
 # 기존 필수 변수들
 NOTION_API_KEY=secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 NOTION_DATABASE_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-# Revalidation을 위한 토큰 (필수)
-REVALIDATE_TOKEN=your_random_secure_token_here
-
-# 사이트 URL (프로덕션 환경에서 필수)
-NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ```
 
 ### 2. 선택적 환경 변수
@@ -65,21 +59,7 @@ NOTION_WEBHOOK_SECRET=your_verification_token_here
 - `NOTION_API_KEY`: Integration의 Secret Key - API 호출에 사용
 - `NOTION_WEBHOOK_SECRET`: Webhook의 Verification Token - webhook 요청 검증에 사용
 
-### 토큰 생성 방법
-
-#### REVALIDATE_TOKEN 생성
-
-안전한 랜덤 토큰을 생성하려면:
-
-```bash
-# macOS/Linux
-openssl rand -base64 32
-
-# Windows PowerShell
-[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
-```
-
-#### NOTION_WEBHOOK_SECRET 획득
+### NOTION_WEBHOOK_SECRET 획득 방법
 
 Notion webhook을 생성할 때 자동으로 제공되는 verification token을 사용합니다. 별도로 생성할 필요가 없으며, Notion Integration 설정 페이지의 webhook 섹션에서 확인할 수 있습니다.
 
@@ -183,65 +163,67 @@ curl https://yourdomain.com/api/webhook/notion
   "configured": true,
   "message": "Notion webhook endpoint is ready.",
   "requiredEnvVars": {
-    "REVALIDATE_TOKEN": true,
     "NOTION_API_KEY": true,
-    "NOTION_WEBHOOK_SECRET": true,
-    "NEXT_PUBLIC_SITE_URL": true
+    "NOTION_WEBHOOK_SECRET": true
   }
 }
 ```
 
-### 2. Revalidate API 상태 확인
-
-```bash
-curl https://yourdomain.com/api/revalidate
-```
-
-**예상 응답:**
-```json
-{
-  "status": "ok",
-  "configured": true,
-  "message": "Revalidation API is ready. Use POST with x-revalidate-token header."
-}
-```
-
-### 3. 실제 업데이트 테스트
+### 2. 실제 업데이트 테스트
 
 #### 테스트 1: 페이지 수정 (page_content_updated)
 
-1. Notion 블로그 데이터베이스에서 발행된 포스트 하나를 선택
+1. Notion 블로그 데이터베이스에서 **Published** 상태의 포스트 선택
 2. 제목이나 내용을 수정하고 저장
-3. 서버 로그 확인 (Vercel이면 Vercel 대시보드의 Logs 탭):
+3. Vercel 로그 확인 (Vercel 대시보드 → Logs 탭):
    ```
-   Received Notion webhook: {...}
-   Page updated: <page_id>
+   Signature verification: { match: true }
+   Received Notion webhook: { type: "page.content_updated", ... }
+   Page content updated: <page_id>
+   Page <page_id>: Status = Published, Published = true
+   Processing published page: your-post-slug
    Successfully revalidated /blog/your-post-slug
-   Webhook processing complete: 1 successful, 0 failed
+   Successfully revalidated posts tag
+   Webhook processing complete: 1 successful, 0 skipped (Draft), 0 failed
    ```
-4. 블로그 페이지 방문하여 변경사항 확인
+4. 블로그 페이지에서 변경사항 즉시 반영 확인
 
-#### 테스트 2: 새 페이지 생성 (page_created)
+#### 테스트 2: Draft 상태 편집 (Skip 확인)
 
-1. Notion 블로그 데이터베이스에 새 페이지 추가
-2. Status를 "Published"로 설정하고 slug 입력
-3. 서버 로그 확인:
+1. Notion에서 **Draft** 상태의 페이지 선택
+2. 내용 수정
+3. Vercel 로그 확인:
    ```
-   Page created: <page_id>
+   Page content updated: <page_id>
+   Page <page_id>: Status = Draft, Published = false
+   Page <page_id> is not published (Draft) - skipping revalidation
+   Webhook processing complete: 0 successful, 1 skipped (Draft), 0 failed
+   ```
+4. **재검증되지 않음** - Vercel Function 호출 최소화 ✅
+
+#### 테스트 3: Draft → Published 전환
+
+1. Draft 페이지의 Status를 "Published"로 변경
+2. Vercel 로그 확인:
+   ```
+   Page properties updated: <page_id>
+   Page <page_id>: Status = Published, Published = true
+   Processing published page: new-post-slug
    Successfully revalidated /blog/new-post-slug
    ```
-4. 블로그 목록 페이지에서 새 포스트 확인
+3. 블로그 목록에 새 포스트 나타남
 
-#### 테스트 3: 페이지 삭제 (page_deleted)
+#### 테스트 4: 페이지 삭제 (page_deleted)
 
 1. Notion 블로그 데이터베이스에서 테스트 페이지 삭제
-2. 서버 로그 확인:
+2. Vercel 로그 확인:
    ```
    Page deleted: <page_id> - revalidating blog list
+   Successfully revalidated posts tag
    ```
-3. 블로그 목록 페이지에서 해당 포스트가 사라졌는지 확인
+3. 블로그 목록에서 해당 포스트 제거됨
 
-### 4. 로컬 개발 환경에서 테스트
+### 3. 로컬 개발 환경에서 테스트
 
 로컬에서 테스트하려면:
 
@@ -302,20 +284,16 @@ ngrok http 3000
    - GET 요청으로 `/api/webhook/notion` 확인
    - 모든 필수 환경 변수가 `true`인지 확인
 
-2. **REVALIDATE_TOKEN 누락**
-   - `.env.local`에 `REVALIDATE_TOKEN` 추가
+2. **NOTION_API_KEY 누락**
+   - `.env.local`에 `NOTION_API_KEY` 추가
    - 프로덕션 환경에도 설정 확인 (Vercel 환경 변수 등)
-
-3. **NEXT_PUBLIC_SITE_URL 누락 또는 잘못됨**
-   - 프로덕션: `https://yourdomain.com`
-   - Vercel은 `VERCEL_URL`이 자동으로 설정되지만, `NEXT_PUBLIC_SITE_URL`을 명시적으로 설정하는 것이 좋음
 
 ### Revalidation 실패
 
 **서버 로그에서 확인:**
 
 ```
-Revalidation failed: ...
+Revalidation error: ...
 ```
 
 **원인과 해결책:**
@@ -328,10 +306,6 @@ Revalidation failed: ...
 2. **페이지가 발행되지 않음**
    - Status가 "Published"인지 확인
    - `blog.config.ts`의 `publishedStatus` 설정 확인
-
-3. **Revalidate API가 응답하지 않음**
-   - `/api/revalidate` 엔드포인트가 정상 작동하는지 확인
-   - REVALIDATE_TOKEN이 올바른지 확인
 
 ### 로그 확인 방법
 
@@ -404,13 +378,16 @@ Notion이 전송하는 webhook 이벤트 예시:
 
 ### 성능 최적화
 
-- **선택적 재검증**: 변경된 페이지만 재검증하므로 효율적
-- **태그 기반 재검증**: 목록 페이지도 자동 갱신 (`posts` 태그 사용)
+- **Draft 필터링**: Published가 아닌 페이지는 재검증 skip → Vercel Function 호출 최소화 🚀
+- **선택적 재검증**: 변경된 페이지만 재검증
+- **태그 기반 재검증**: `posts` 태그로 목록 페이지 일괄 갱신
 - **이벤트별 최적화**:
-  - `page_created`, `page_content_updated`: 특정 페이지 + 목록 재검증
-  - `page_deleted`: 목록만 재검증 (페이지 정보 없음)
-- **캐시 전략**: `blog.config.ts`의 `revalidate` 설정으로 조정 가능
-- **병렬 처리**: 여러 이벤트가 동시에 발생해도 병렬로 처리
+  - `page.created`, `page.content_updated`, `page.properties_updated`: Published면 특정 페이지 + 목록 재검증
+  - Draft 상태면 skip (로그만 출력)
+  - `page.deleted`: 목록만 재검증
+- **직접 호출 방식**: HTTP 요청 대신 `revalidatePath`/`revalidateTag` 직접 호출 → Deployment Protection 우회
+- **캐시 전략**: `blog.config.ts`의 `revalidate` 설정으로 기본 캐시 시간 조정
+- **병렬 처리**: 여러 이벤트 동시 처리
 
 ---
 

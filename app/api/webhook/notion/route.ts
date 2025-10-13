@@ -23,6 +23,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { getPostSlugByPageId } from '@/lib/notion/api';
 import crypto from 'crypto';
 
@@ -132,37 +133,17 @@ export async function POST(request: NextRequest) {
           return { error: 'No page ID' };
         }
 
-        // Revalidate API 호출을 위한 공통 설정
-        const revalidateToken = process.env.REVALIDATE_TOKEN;
-        if (!revalidateToken) {
-          console.error('REVALIDATE_TOKEN is not configured');
-          return { error: 'REVALIDATE_TOKEN not configured' };
-        }
-
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                       process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                       'http://localhost:3000';
-
         // 페이지 삭제 이벤트 처리
         if (event.type === 'page.deleted') {
           console.log(`Page deleted: ${pageId} - revalidating blog list`);
 
           // 삭제된 페이지는 정보를 가져올 수 없으므로 전체 목록만 재검증
-          const listRevalidateResponse = await fetch(`${baseUrl}/api/revalidate`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-revalidate-token': revalidateToken,
-            },
-            body: JSON.stringify({
-              tag: 'posts', // posts 태그를 사용하는 모든 페이지 재검증
-            }),
-          });
-
-          if (!listRevalidateResponse.ok) {
-            const errorText = await listRevalidateResponse.text();
-            console.error('List revalidation failed:', errorText);
-            return { error: 'List revalidation failed', details: errorText };
+          try {
+            revalidateTag('posts');
+            console.log('Successfully revalidated posts tag');
+          } catch (error) {
+            console.error('Revalidation error:', error);
+            return { error: 'Revalidation failed', details: error instanceof Error ? error.message : 'Unknown error' };
           }
 
           return {
@@ -206,40 +187,16 @@ export async function POST(request: NextRequest) {
         console.log(`Processing published page: ${slug}`);
 
         // 해당 블로그 포스트 페이지 재검증
-        const revalidateResponse = await fetch(`${baseUrl}/api/revalidate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-revalidate-token': revalidateToken,
-          },
-          body: JSON.stringify({
-            path: `/blog/${slug}`,
-          }),
-        });
+        try {
+          revalidatePath(`/blog/${slug}`);
+          console.log(`Successfully revalidated /blog/${slug}`);
 
-        if (!revalidateResponse.ok) {
-          const errorText = await revalidateResponse.text();
-          console.error('Revalidation failed:', errorText);
-          return { error: 'Revalidation failed', details: errorText };
-        }
-
-        const revalidateData = await revalidateResponse.json();
-        console.log(`Successfully revalidated /blog/${slug}`, revalidateData);
-
-        // 블로그 목록 페이지도 재검증 (새 포스트나 업데이트된 포스트 반영)
-        const listRevalidateResponse = await fetch(`${baseUrl}/api/revalidate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-revalidate-token': revalidateToken,
-          },
-          body: JSON.stringify({
-            tag: 'posts', // posts 태그를 사용하는 모든 페이지 재검증
-          }),
-        });
-
-        if (!listRevalidateResponse.ok) {
-          console.warn('Failed to revalidate posts list');
+          // 블로그 목록 페이지도 재검증 (새 포스트나 업데이트된 포스트 반영)
+          revalidateTag('posts');
+          console.log('Successfully revalidated posts tag');
+        } catch (error) {
+          console.error('Revalidation error:', error);
+          return { error: 'Revalidation failed', details: error instanceof Error ? error.message : 'Unknown error' };
         }
 
         return {
@@ -284,22 +241,18 @@ export async function POST(request: NextRequest) {
 
 // GET 요청 - 상태 확인용
 export async function GET() {
-  const isConfigured = !!(
-    process.env.REVALIDATE_TOKEN &&
-    process.env.NOTION_API_KEY
-  );
+  const isConfigured = !!process.env.NOTION_API_KEY;
 
   return NextResponse.json({
     status: 'ok',
     configured: isConfigured,
     message: isConfigured
       ? 'Notion webhook endpoint is ready.'
-      : 'Missing required environment variables (REVALIDATE_TOKEN, NOTION_API_KEY).',
+      : 'Missing required environment variables (NOTION_API_KEY).',
     requiredEnvVars: {
-      REVALIDATE_TOKEN: !!process.env.REVALIDATE_TOKEN,
       NOTION_API_KEY: !!process.env.NOTION_API_KEY,
+      NOTION_DATABASE_ID: !!process.env.NOTION_DATABASE_ID,
       NOTION_WEBHOOK_SECRET: !!process.env.NOTION_WEBHOOK_SECRET,
-      NEXT_PUBLIC_SITE_URL: !!process.env.NEXT_PUBLIC_SITE_URL,
     },
   });
 }
