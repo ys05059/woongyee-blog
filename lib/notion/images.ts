@@ -4,6 +4,7 @@
 
 import { getNotionClient } from './client';
 import { uploadNotionImage } from '@/lib/cloudinary/upload';
+import { isCloudinaryConfigured } from '@/lib/cloudinary/config';
 
 /**
  * 이미지 정보 타입
@@ -39,7 +40,7 @@ interface NotionBlock {
  * Notion 블록에서 이미지 URL 추출
  *
  * @param block - Notion 블록
- * @returns 이미지 URL 또는 null
+ * @returns 이미지 URL 또는 null (유효한 HTTP/HTTPS URL만 반환)
  */
 function extractImageUrl(block: NotionBlock): string | null {
   if (block.type !== 'image' || !block.image) {
@@ -47,17 +48,23 @@ function extractImageUrl(block: NotionBlock): string | null {
   }
 
   const image = block.image;
+  let url: string | null = null;
 
   // Notion UI에서 업로드한 파일 (type: file)
   if (image.type === 'file' && image.file?.url) {
-    return image.file.url;
+    url = image.file.url;
   }
-
   // 외부 URL로 추가한 이미지 (type: external)
-  if (image.type === 'external' && image.external?.url) {
-    return image.external.url;
+  else if (image.type === 'external' && image.external?.url) {
+    url = image.external.url;
   }
 
+  // 유효한 HTTP/HTTPS URL인지 검증
+  if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+    return url;
+  }
+
+  // 로컬 경로나 유효하지 않은 URL은 null 반환
   return null;
 }
 
@@ -110,6 +117,12 @@ export async function extractAndUploadImages(
 ): Promise<ImageInfo[]> {
   console.log(`[Images] Extracting images from page ${pageId}`);
 
+  // Cloudinary가 설정되어 있지 않으면 빈 배열 반환 (업로드 시도하지 않음)
+  if (!isCloudinaryConfigured()) {
+    console.log('[Images] Cloudinary not configured - skipping image upload');
+    return [];
+  }
+
   try {
     // 모든 블록 가져오기
     const blocks = await getAllBlocks(pageId);
@@ -131,7 +144,7 @@ export async function extractAndUploadImages(
       const notionUrl = extractImageUrl(block);
 
       if (!notionUrl) {
-        console.warn(`[Images] Could not extract URL from block ${block.id}`);
+        // extractImageUrl에서 이미 유효성 검증 완료 (로그도 출력됨)
         continue;
       }
 

@@ -36,6 +36,17 @@ export function getCloudinaryClient() {
 }
 
 /**
+ * Cloudinary 자격증명이 설정되어 있는지 확인
+ */
+export function isCloudinaryConfigured(): boolean {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+  return !!(cloudName && apiKey && apiSecret);
+}
+
+/**
  * Cloudinary Cloud Name 가져오기
  */
 export function getCloudName(): string {
