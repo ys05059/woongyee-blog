@@ -1,17 +1,23 @@
 /**
  * 목차 (Table of Contents) 컴포넌트
  * 포스트의 heading(h1-h3)을 표시하고 클릭 시 해당 섹션으로 스크롤
- * 동적 접기/펼치기: 현재 활성 h2의 하위 h3만 표시
+ * 3레이어 계층 구조: h1 > h2 > h3 유연하게 대응
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useActiveHeading } from '@/hooks/useActiveHeading';
 import type { Heading } from '@/lib/notion/types';
 
 interface TableOfContentsProps {
   headings: Heading[];
+}
+
+// 계층 구조 정보
+interface HeadingNode extends Heading {
+  parentId: string | null; // 부모 heading의 id
+  hasChildren: boolean; // 자식 heading이 있는지
 }
 
 export function TableOfContents({ headings }: TableOfContentsProps) {
@@ -24,29 +30,84 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
   const headingIds = allHeadings.map((h) => h.id);
   const { activeId, setActiveId } = useActiveHeading(headingIds);
 
-  // 확장된 h2 목록 관리
-  const [expandedH2Ids, setExpandedH2Ids] = useState<string[]>([]);
+  // 확장된 heading id 목록 관리 (h1, h2 모두 포함)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string, level: number) => {
+  // 계층 구조 파악: 각 heading의 부모 찾기
+  const headingNodes: HeadingNode[] = useMemo(() => {
+    const nodes: HeadingNode[] = [];
+
+    for (let i = 0; i < allHeadings.length; i++) {
+      const current = allHeadings[i];
+      let parentId: string | null = null;
+
+      // 이전 heading들 중에서 부모 찾기
+      for (let j = i - 1; j >= 0; j--) {
+        const prev = allHeadings[j];
+        // 현재보다 레벨이 낮은(상위) heading을 찾으면 그게 부모
+        if (prev.level < current.level) {
+          parentId = prev.id;
+          break;
+        }
+      }
+
+      // 자식이 있는지 확인
+      const hasChildren = allHeadings.some((h, idx) => {
+        if (idx <= i) return false;
+        // 다음 heading이 현재보다 레벨이 높으면(하위) 자식
+        if (h.level > current.level) return true;
+        // 같거나 낮은 레벨이 나오면 자식 영역 끝
+        return false;
+      });
+
+      nodes.push({
+        ...current,
+        parentId,
+        hasChildren,
+      });
+    }
+
+    return nodes;
+  }, [allHeadings]);
+
+  // 특정 heading의 모든 조상(ancestors) id 배열 반환
+  const getAncestorIds = (headingId: string): string[] => {
+    const ancestors: string[] = [];
+    let currentNode = headingNodes.find(n => n.id === headingId);
+
+    while (currentNode?.parentId) {
+      ancestors.push(currentNode.parentId);
+      currentNode = headingNodes.find(n => n.id === currentNode!.parentId);
+    }
+
+    return ancestors;
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();
 
-    const heading = allHeadings.find(h => h.id === id);
+    const node = headingNodes.find(n => n.id === id);
+    if (!node) return;
 
-    // h2 클릭 시 토글 처리
-    if (level === 2 && heading) {
-      if (activeId === id && expandedH2Ids.includes(id)) {
-        // 이미 활성화되고 열려있으면 → 닫기
-        setExpandedH2Ids(prev => prev.filter(h2Id => h2Id !== id));
+    // 자식이 있는 heading(h1, h2)을 클릭한 경우
+    if (node.hasChildren) {
+      const isCurrentlyExpanded = expandedIds.has(id);
+
+      // 열려있으면 → 닫기만 하고 리턴 (스크롤 이동 없음)
+      if (isCurrentlyExpanded) {
+        setExpandedIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(id);
+          return newSet;
+        });
         return;
       } else {
-        // 닫혀있거나 비활성화 상태 → 열기
-        if (!expandedH2Ids.includes(id)) {
-          setExpandedH2Ids(prev => [...prev, id]);
-        }
+        // 닫혀있으면 → 열기
+        setExpandedIds(prev => new Set(prev).add(id));
       }
     }
 
-    // 스크롤 이동
+    // 스크롤 이동 (자식이 없거나, 닫혀있던 헤더를 연 경우만 실행)
     setActiveId(id);
 
     const element = document.getElementById(id);
@@ -62,66 +123,48 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
     }
   };
 
-  // 현재 활성화된 heading의 부모 h2 찾기
-  const activeHeading = allHeadings.find((h) => h.id === activeId);
-  let activeParentH2Id: string | null = null;
-
-  if (activeHeading) {
-    if (activeHeading.level === 1 || activeHeading.level === 2) {
-      activeParentH2Id = activeHeading.id;
-    } else if (activeHeading.level === 3) {
-      // h3의 경우 이전 h2 찾기
-      const activeIndex = allHeadings.findIndex((h) => h.id === activeId);
-      for (let i = activeIndex - 1; i >= 0; i--) {
-        if (allHeadings[i].level === 2) {
-          activeParentH2Id = allHeadings[i].id;
-          break;
-        }
+  // 스크롤로 activeId 변경 시 해당 heading의 모든 조상 자동 확장
+  useEffect(() => {
+    if (activeId) {
+      const ancestorIds = getAncestorIds(activeId);
+      if (ancestorIds.length > 0) {
+        setExpandedIds(prev => {
+          const newSet = new Set(prev);
+          ancestorIds.forEach(id => newSet.add(id));
+          return newSet;
+        });
       }
     }
-  }
-
-  // 스크롤로 activeId 변경 시 자동으로 해당 h2 확장
-  useEffect(() => {
-    if (activeParentH2Id && !expandedH2Ids.includes(activeParentH2Id)) {
-      setExpandedH2Ids(prev => [...prev, activeParentH2Id]);
-    }
-  }, [activeParentH2Id, expandedH2Ids]);
+  }, [activeId]);
 
   // Early return은 모든 hooks 이후에
   if (headings.length === 0) {
     return null;
   }
 
-  // 표시할 heading 필터링
-  const visibleHeadings: Heading[] = [];
-  let currentH2: Heading | null = null;
+  // 표시할 heading 필터링: 부모가 없거나 모든 조상이 확장되어 있으면 표시
+  const visibleHeadings = headingNodes.filter(node => {
+    // 부모가 없으면 최상위이므로 항상 표시
+    if (!node.parentId) return true;
 
-  for (const heading of allHeadings) {
-    if (heading.level === 1 || heading.level === 2) {
-      visibleHeadings.push(heading);
-      currentH2 = heading;
-    } else if (heading.level === 3) {
-      // h3는 부모 h2가 활성화되고 확장되어 있을 때만 표시
-      if (currentH2 && currentH2.id === activeParentH2Id && expandedH2Ids.includes(currentH2.id)) {
-        visibleHeadings.push(heading);
-      }
-    }
-  }
+    // 모든 조상이 확장되어 있어야 표시
+    const ancestors = getAncestorIds(node.id);
+    return ancestors.every(ancestorId => expandedIds.has(ancestorId));
+  });
 
   return (
     <nav className="space-y-1">
-      <div className="text-base font-semibold text-foreground mb-3">목차</div>
       <ul className="space-y-1 text-sm">
-        {visibleHeadings.map((heading) => {
-          const isActive = activeId === heading.id;
-          const indent = (heading.level - 1) * 12; // level 1: 0px, level 2: 12px, level 3: 24px
+        {visibleHeadings.map((node) => {
+          const isActive = activeId === node.id;
+          const isExpanded = expandedIds.has(node.id);
+          const indent = (node.level - 1) * 12; // level 1: 0px, level 2: 12px, level 3: 24px
 
           return (
-            <li key={heading.id} style={{ paddingLeft: `${indent}px` }}>
+            <li key={node.id} style={{ paddingLeft: `${indent}px` }}>
               <a
-                href={`#${heading.id}`}
-                onClick={(e) => handleClick(e, heading.id, heading.level)}
+                href={`#${node.id}`}
+                onClick={(e) => handleClick(e, node.id)}
                 className={`
                   block py-1.5 px-2 rounded transition-all duration-200
                   hover:text-primary hover:bg-secondary/50
@@ -130,9 +173,10 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
                       ? 'text-primary font-medium bg-secondary'
                       : 'text-muted-foreground'
                   }
+                  ${node.hasChildren ? 'cursor-pointer' : ''}
                 `}
               >
-                {heading.text}
+                {node.text}
               </a>
             </li>
           );

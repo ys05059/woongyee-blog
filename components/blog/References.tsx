@@ -16,7 +16,6 @@ export function References({ references }: ReferencesProps) {
 
   return (
     <div className="space-y-1">
-      <div className="text-base font-semibold text-foreground mb-3">참고 자료</div>
       <ul className="space-y-2 text-sm">
         {references.map((ref, index) => (
           <li key={index}>

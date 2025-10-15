@@ -34,21 +34,27 @@ export function RightSidebar({ headings, references }: RightSidebarProps) {
       <aside className="hidden xl:block w-72 flex-shrink-0">
         <div className="sticky top-20 h-[calc(100vh-5rem)] flex flex-col">
           {headings.length > 0 && (
-            <div className="flex-[7] min-h-0 overflow-y-auto scrollbar-hide">
-              <div className="pb-2">
-                <TableOfContents headings={headings} />
+            <>
+              <div className="text-base font-semibold text-foreground mb-3 flex-shrink-0">목차</div>
+              <div className="flex-[7] min-h-0 overflow-y-auto scrollbar-hide">
+                <div className="pb-2">
+                  <TableOfContents headings={headings} />
+                </div>
               </div>
-            </div>
+            </>
           )}
           {headings.length > 0 && references.length > 0 && (
             <div className="border-t border-border my-2 flex-shrink-0" />
           )}
           {references.length > 0 && (
-            <div className="flex-[3] min-h-0 overflow-y-auto scrollbar-hide">
-              <div className="pt-2">
-                <References references={references} />
+            <>
+              <div className="text-base font-semibold text-foreground mb-3 flex-shrink-0">참고 자료</div>
+              <div className="flex-[3] min-h-0 overflow-y-auto scrollbar-hide">
+                <div className="pt-2">
+                  <References references={references} />
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </aside>
@@ -108,17 +114,23 @@ export function RightSidebar({ headings, references }: RightSidebarProps) {
             {/* 사이드바 본체 */}
             <aside className="w-72 h-[70vh] bg-background border border-border rounded-l-xl shadow-2xl overflow-hidden flex flex-col">
               {headings.length > 0 && (
-                <div className="flex-[7] min-h-0 overflow-y-auto scrollbar-hide p-6 pb-0">
-                  <TableOfContents headings={headings} />
-                </div>
+                <>
+                  <div className="text-base font-semibold text-foreground px-6 pt-6 pb-3 flex-shrink-0">목차</div>
+                  <div className="flex-[7] min-h-0 overflow-y-auto scrollbar-hide px-6">
+                    <TableOfContents headings={headings} />
+                  </div>
+                </>
               )}
               {headings.length > 0 && references.length > 0 && (
-                <div className="border-t border-border mx-6" />
+                <div className="border-t border-border mx-6 my-2 flex-shrink-0" />
               )}
               {references.length > 0 && (
-                <div className="flex-[3] min-h-0 overflow-y-auto scrollbar-hide p-6 pt-3">
-                  <References references={references} />
-                </div>
+                <>
+                  <div className="text-base font-semibold text-foreground px-6 pb-3 flex-shrink-0">참고 자료</div>
+                  <div className="flex-[3] min-h-0 overflow-y-auto scrollbar-hide px-6 pb-6">
+                    <References references={references} />
+                  </div>
+                </>
               )}
             </aside>
           </div>
