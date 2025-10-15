@@ -63,26 +63,34 @@ npm install
 3. Share the database with your integration
 4. Copy the Database ID from the URL
 
-### 5. Configure environment variables
+### 5. Set up configuration files
 
-Copy `docs/.env.example` to `.env.local`:
+Copy the example configuration to create your own:
 
 ```bash
+cp docs/blog.config.example.ts blog.config.ts
 cp docs/.env.example .env.local
 ```
 
-Edit `.env.local` with your Notion credentials:
+Edit `.env.local` with your credentials:
 
 ```bash
-# Required - Notion API
+# Required
 NOTION_API_KEY=secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 NOTION_DATABASE_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NEXT_PUBLIC_BLOG_URL=https://yourdomain.com
 
-# Optional - Giscus Comments (설정 방법은 docs/SETUP_GUIDE.md 참고)
+# Optional - Google Search Console
+NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=your_token
+
+# Optional - Giscus Comments
 NEXT_PUBLIC_GISCUS_REPO=username/repo
 NEXT_PUBLIC_GISCUS_REPO_ID=R_xxxxx
 NEXT_PUBLIC_GISCUS_CATEGORY=Announcements
 NEXT_PUBLIC_GISCUS_CATEGORY_ID=DIC_xxxxx
+
+# Optional - Google Analytics
+NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
 
 # Optional - Revalidation Token
 REVALIDATE_TOKEN=your_random_token
@@ -90,7 +98,7 @@ REVALIDATE_TOKEN=your_random_token
 
 ### 6. Customize your blog
 
-Edit `blog.config.ts` to personalize your blog:
+Edit `blog.config.ts` to personalize your blog (see `docs/blog.config.example.ts` for all options):
 
 ```typescript
 blog: {
@@ -124,11 +132,13 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Manual Deploy
 
-1. Push your repository to GitHub
+1. Push your repository to GitHub (make sure `blog.config.ts` is included!)
 2. Go to [Vercel](https://vercel.com)
 3. Import your repository
 4. Add environment variables (same as `.env.local`)
 5. Deploy!
+
+**Note**: `blog.config.ts` is in `.gitignore` by default to protect sensitive info. Remove it from `.gitignore` if you want to commit it, or configure it separately in your deployment environment.
 
 ### Post-Deployment Setup
 
@@ -147,7 +157,7 @@ curl -X POST https://yourdomain.com/api/revalidate \
 
 ## 🎨 Customization
 
-All blog customization is done in `blog.config.ts`. No environment variables needed!
+All blog customization is done in `blog.config.ts`. See `docs/blog.config.example.ts` for complete configuration with detailed comments.
 
 ### Blog Information
 
@@ -155,7 +165,7 @@ All blog customization is done in `blog.config.ts`. No environment variables nee
 blog: {
   name: 'My Blog',
   description: 'A blog powered by Notion and Next.js',
-  url: 'https://yourdomain.com',
+  url: process.env.NEXT_PUBLIC_BLOG_URL as string,  // From .env.local
 },
 author: {
   name: 'Your Name',
@@ -236,8 +246,9 @@ notion-based-next-blog/
 ├── lib/                          # Utilities and libraries
 │   ├── notion/                   # Notion API integration
 │   └── utils/                    # Helper functions
-├── blog.config.ts                # Central configuration
+├── blog.config.ts                # Central configuration (gitignored)
 └── docs/                         # Documentation
+    ├── blog.config.example.ts    # Blog configuration template
     ├── .env.example              # Environment variables template
     ├── SETUP_GUIDE.md
     ├── CONTRIBUTING.md

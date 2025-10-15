@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   authors: [{ name: blogConfig.author.name, url: blogConfig.blog.url }],
   creator: blogConfig.author.name,
   verification: {
-    google: 'your google search console token',
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
   },
   openGraph: {
     type: "website",
