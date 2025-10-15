@@ -130,7 +130,9 @@ export async function parsePageToPostMeta(
  */
 export async function parsePageToPost(
   page: PageObjectResponse | PartialPageObjectResponse,
-  content: string
+  content: string,
+  headings: import('./types').Heading[] = [],
+  references: import('./types').Reference[] = []
 ): Promise<Post | null> {
   const postMeta = await parsePageToPostMeta(page);
 
@@ -139,6 +141,8 @@ export async function parsePageToPost(
   return {
     ...postMeta,
     content,
+    headings,
+    references,
   };
 }
 

@@ -155,17 +155,13 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
     const { html: htmlContent, headings, references } = await markdownToHtml(markdownContent);
 
     // Post 객체 생성
-    const post = await parsePageToPost(page, htmlContent);
+    const post = await parsePageToPost(page, htmlContent, headings, references);
 
     if (!post) return null;
 
     // 읽기 시간 계산 (원본 마크다운 기준)
     const { text } = readingTime(markdownContent);
     post.readingTime = text;
-
-    // headings와 references 추가
-    post.headings = headings;
-    post.references = references;
 
     return post;
   } catch (error) {

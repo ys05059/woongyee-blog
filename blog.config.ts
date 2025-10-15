@@ -30,7 +30,7 @@ export const blogConfig = {
   blog: {
     name: 'My Blog',
     description: 'A blog powered by Notion and Next.js',
-    url: process.env.NEXT_PUBLIC_BLOG_URL,
+    url: process.env.NEXT_PUBLIC_BLOG_URL as string,
     language: 'ko',
     locale: 'ko_KR',
   },

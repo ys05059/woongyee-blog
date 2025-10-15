@@ -27,10 +27,6 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
   // 확장된 h2 목록 관리
   const [expandedH2Ids, setExpandedH2Ids] = useState<string[]>([]);
 
-  if (headings.length === 0) {
-    return null;
-  }
-
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string, level: number) => {
     e.preventDefault();
 
@@ -90,7 +86,12 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
     if (activeParentH2Id && !expandedH2Ids.includes(activeParentH2Id)) {
       setExpandedH2Ids(prev => [...prev, activeParentH2Id]);
     }
-  }, [activeParentH2Id]);
+  }, [activeParentH2Id, expandedH2Ids]);
+
+  // Early return은 모든 hooks 이후에
+  if (headings.length === 0) {
+    return null;
+  }
 
   // 표시할 heading 필터링
   const visibleHeadings: Heading[] = [];

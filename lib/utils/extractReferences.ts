@@ -2,7 +2,7 @@
  * HTML에서 참고 자료 추출 및 제거 (rehype plugin)
  */
 
-import { visit, SKIP } from 'unist-util-visit';
+import { visit } from 'unist-util-visit';
 import type { Element, Root, Text, Parent } from 'hast';
 import type { Plugin } from 'unified';
 import type { Reference } from '@/lib/notion/types';
