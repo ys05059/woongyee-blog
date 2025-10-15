@@ -1,69 +1,82 @@
 /**
  * 현재 화면에 보이는 heading을 추적하는 hook
- * Intersection Observer와 스크롤 이벤트를 사용하여 active heading 감지
+ * 스크롤 이벤트를 사용하여 active heading 감지
  */
 
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
 export function useActiveHeading(headingIds: string[]) {
   const [activeId, setActiveId] = useState<string>('');
   const ignoreObserverRef = useRef(false);
+  const headingIdsRef = useRef<string[]>([]);
 
+  // headingIds를 ref에 저장하여 의존성 문제 해결
   useEffect(() => {
-    if (headingIds.length === 0) return;
+    headingIdsRef.current = headingIds;
+  }, [headingIds]);
 
-    // 스크롤 이벤트로 댓글 섹션 감지
-    const handleScroll = () => {
-      if (ignoreObserverRef.current) return;
+  const handleScroll = useCallback(() => {
+    if (ignoreObserverRef.current) return;
 
-      const scrolledToBottom =
-        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 200;
+    const currentHeadingIds = headingIdsRef.current;
+    if (currentHeadingIds.length === 0) return;
 
-      if (scrolledToBottom && headingIds.length > 0) {
-        setActiveId(headingIds[headingIds.length - 1]); // 댓글 활성화
-        return;
+    // 스크롤이 거의 끝에 도달하면 마지막 항목(댓글) 활성화
+    const scrolledToBottom =
+      window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 200;
+
+    if (scrolledToBottom) {
+      setActiveId(currentHeadingIds[currentHeadingIds.length - 1]);
+      return;
+    }
+
+    // 헤더 높이 동적 계산
+    const header = document.querySelector('header[class*="sticky"], header[class*="fixed"], nav[class*="sticky"], nav[class*="fixed"]');
+    const headerHeight = header?.getBoundingClientRect().height || 64;
+    const headerOffset = headerHeight + 76; // 헤더 높이 + 여유
+
+    let closestHeading = '';
+    let closestDistance = Infinity;
+
+    // 헤더 아래에 있는 heading 중 가장 가까운 것 찾기
+    currentHeadingIds.forEach((id) => {
+      const element = document.getElementById(id);
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        const distance = Math.abs(rect.top - headerOffset);
+
+        // 헤더 아래에 있고, 가장 가까운 요소
+        if (rect.top <= headerOffset && distance < closestDistance) {
+          closestDistance = distance;
+          closestHeading = id;
+        }
       }
+    });
 
-      // 일반적인 경우: 헤더 바로 아래 지점을 기준으로 가장 가까운 heading 찾기
-      const headerOffset = 140; // 헤더(64px) + 여유(76px)
-      let closestHeading = '';
-      let closestDistance = Infinity;
-
-      headingIds.forEach((id) => {
+    // 모든 heading이 헤더 아래에 없으면, 가장 가까운 아래쪽 heading
+    if (!closestHeading) {
+      closestDistance = Infinity;
+      currentHeadingIds.forEach((id) => {
         const element = document.getElementById(id);
         if (element) {
           const rect = element.getBoundingClientRect();
-          const distance = Math.abs(rect.top - headerOffset);
-
-          // 헤더 아래에 있고, 가장 가까운 요소
-          if (rect.top <= headerOffset && distance < closestDistance) {
-            closestDistance = distance;
+          if (rect.top > headerOffset && rect.top < closestDistance) {
+            closestDistance = rect.top;
             closestHeading = id;
           }
         }
       });
+    }
 
-      // 모든 heading이 헤더 아래에 있지 않으면, 가장 가까운 아래쪽 heading
-      if (!closestHeading) {
-        closestDistance = Infinity;
-        headingIds.forEach((id) => {
-          const element = document.getElementById(id);
-          if (element) {
-            const rect = element.getBoundingClientRect();
-            if (rect.top > headerOffset && rect.top < closestDistance) {
-              closestDistance = rect.top;
-              closestHeading = id;
-            }
-          }
-        });
-      }
+    if (closestHeading) {
+      setActiveId(closestHeading);
+    }
+  }, []);
 
-      if (closestHeading) {
-        setActiveId(closestHeading);
-      }
-    };
+  useEffect(() => {
+    if (headingIdsRef.current.length === 0) return;
 
     // 초기 실행
     handleScroll();
@@ -74,17 +87,17 @@ export function useActiveHeading(headingIds: string[]) {
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [headingIds]);
+  }, [handleScroll]);
 
   // 클릭 시 즉시 반영하고 잠시 자동 감지 중지
-  const setActiveIdWithDelay = (id: string) => {
+  const setActiveIdWithDelay = useCallback((id: string) => {
     ignoreObserverRef.current = true;
     setActiveId(id);
 
     setTimeout(() => {
       ignoreObserverRef.current = false;
     }, 1000); // 1초 후 자동 감지 재개
-  };
+  }, []);
 
   return { activeId, setActiveId: setActiveIdWithDelay };
 }

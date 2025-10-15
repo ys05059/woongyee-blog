@@ -24,10 +24,6 @@ export function RightSidebar({ headings, references }: RightSidebarProps) {
     return null;
   }
 
-  const toggleSidebar = () => {
-    setIsOpen(!isOpen);
-  };
-
   return (
     <>
       {/* xl 이상: 기존 방식 */}
@@ -72,7 +68,7 @@ export function RightSidebar({ headings, references }: RightSidebarProps) {
           <div className="relative flex items-stretch">
             {/* 핸들 버튼 */}
             <button
-              onClick={toggleSidebar}
+              onClick={() => setIsOpen(!isOpen)}
               className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full
                          bg-background border border-r-0 border-border
                          px-1.5 py-8 rounded-l-lg shadow-lg
@@ -80,35 +76,19 @@ export function RightSidebar({ headings, references }: RightSidebarProps) {
                          flex items-center justify-center"
               aria-label={isOpen ? '사이드바 닫기' : '사이드바 열기'}
             >
-              {isOpen ? (
-                <svg
-                  className="w-4 h-4 text-muted-foreground"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className="w-4 h-4 text-muted-foreground"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              )}
+              <svg
+                className="w-4 h-4 text-muted-foreground"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d={isOpen ? 'M9 5l7 7-7 7' : 'M15 19l-7-7 7-7'}
+                />
+              </svg>
             </button>
 
             {/* 사이드바 본체 */}

@@ -22,19 +22,19 @@ interface HeadingNode extends Heading {
 
 export function TableOfContents({ headings }: TableOfContentsProps) {
   // 댓글 항목 추가
-  const allHeadings: Heading[] = [
+  const allHeadings: Heading[] = useMemo(() => [
     ...headings,
     { id: 'comments', level: 2, text: '댓글' }
-  ];
+  ], [headings]);
 
-  const headingIds = allHeadings.map((h) => h.id);
+  const headingIds = useMemo(() => allHeadings.map((h) => h.id), [allHeadings]);
   const { activeId, setActiveId } = useActiveHeading(headingIds);
 
-  // 확장된 heading id 목록 관리 (h1, h2 모두 포함)
+  // 확장된 heading id 목록 관리
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   // 계층 구조 파악: 각 heading의 부모 찾기
-  const headingNodes: HeadingNode[] = useMemo(() => {
+  const headingNodes = useMemo(() => {
     const nodes: HeadingNode[] = [];
 
     for (let i = 0; i < allHeadings.length; i++) {
@@ -71,17 +71,19 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
   }, [allHeadings]);
 
   // 특정 heading의 모든 조상(ancestors) id 배열 반환
-  const getAncestorIds = (headingId: string): string[] => {
-    const ancestors: string[] = [];
-    let currentNode = headingNodes.find(n => n.id === headingId);
+  const getAncestorIds = useMemo(() => {
+    return (headingId: string): string[] => {
+      const ancestors: string[] = [];
+      let currentNode = headingNodes.find(n => n.id === headingId);
 
-    while (currentNode?.parentId) {
-      ancestors.push(currentNode.parentId);
-      currentNode = headingNodes.find(n => n.id === currentNode!.parentId);
-    }
+      while (currentNode?.parentId) {
+        ancestors.push(currentNode.parentId);
+        currentNode = headingNodes.find(n => n.id === currentNode!.parentId);
+      }
 
-    return ancestors;
-  };
+      return ancestors;
+    };
+  }, [headingNodes]);
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();
@@ -123,19 +125,13 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
     }
   };
 
-  // 스크롤로 activeId 변경 시 해당 heading의 모든 조상 자동 확장
+  // 스크롤로 activeId 변경 시 해당 heading의 조상만 열고 나머지는 닫기
   useEffect(() => {
     if (activeId) {
       const ancestorIds = getAncestorIds(activeId);
-      if (ancestorIds.length > 0) {
-        setExpandedIds(prev => {
-          const newSet = new Set(prev);
-          ancestorIds.forEach(id => newSet.add(id));
-          return newSet;
-        });
-      }
+      setExpandedIds(new Set(ancestorIds));
     }
-  }, [activeId]);
+  }, [activeId, getAncestorIds]);
 
   // Early return은 모든 hooks 이후에
   if (headings.length === 0) {
@@ -143,22 +139,23 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
   }
 
   // 표시할 heading 필터링: 부모가 없거나 모든 조상이 확장되어 있으면 표시
-  const visibleHeadings = headingNodes.filter(node => {
-    // 부모가 없으면 최상위이므로 항상 표시
-    if (!node.parentId) return true;
+  const visibleHeadings = useMemo(() => {
+    return headingNodes.filter(node => {
+      // 부모가 없으면 최상위이므로 항상 표시
+      if (!node.parentId) return true;
 
-    // 모든 조상이 확장되어 있어야 표시
-    const ancestors = getAncestorIds(node.id);
-    return ancestors.every(ancestorId => expandedIds.has(ancestorId));
-  });
+      // 모든 조상이 확장되어 있어야 표시
+      const ancestors = getAncestorIds(node.id);
+      return ancestors.every(ancestorId => expandedIds.has(ancestorId));
+    });
+  }, [headingNodes, expandedIds, getAncestorIds]);
 
   return (
     <nav className="space-y-1">
       <ul className="space-y-1 text-sm">
         {visibleHeadings.map((node) => {
           const isActive = activeId === node.id;
-          const isExpanded = expandedIds.has(node.id);
-          const indent = (node.level - 1) * 12; // level 1: 0px, level 2: 12px, level 3: 24px
+          const indent = (node.level - 1) * 12;
 
           return (
             <li key={node.id} style={{ paddingLeft: `${indent}px` }}>
@@ -173,7 +170,6 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
                       ? 'text-primary font-medium bg-secondary'
                       : 'text-muted-foreground'
                   }
-                  ${node.hasChildren ? 'cursor-pointer' : ''}
                 `}
               >
                 {node.text}
