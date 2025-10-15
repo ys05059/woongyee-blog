@@ -5,6 +5,23 @@
 import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 
 /**
+ * 목차 항목
+ */
+export interface Heading {
+  id: string;
+  level: 1 | 2 | 3;
+  text: string;
+}
+
+/**
+ * 참고 자료
+ */
+export interface Reference {
+  url: string;
+  title: string;
+}
+
+/**
  * 블로그 포스트 인터페이스
  */
 export interface Post {
@@ -20,6 +37,8 @@ export interface Post {
   status: string;
   featured?: boolean;
   readingTime?: string;
+  headings: Heading[];
+  references: Reference[];
 }
 
 /**

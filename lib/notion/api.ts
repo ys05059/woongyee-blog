@@ -151,8 +151,8 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
       markdownContent = replaceImageUrls(markdownContent, imageMapping);
     }
 
-    // HTML로 변환
-    const htmlContent = await markdownToHtml(markdownContent);
+    // HTML로 변환 (headings, references 추출)
+    const { html: htmlContent, headings, references } = await markdownToHtml(markdownContent);
 
     // Post 객체 생성
     const post = await parsePageToPost(page, htmlContent);
@@ -162,6 +162,10 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
     // 읽기 시간 계산 (원본 마크다운 기준)
     const { text } = readingTime(markdownContent);
     post.readingTime = text;
+
+    // headings와 references 추가
+    post.headings = headings;
+    post.references = references;
 
     return post;
   } catch (error) {

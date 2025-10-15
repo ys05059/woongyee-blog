@@ -12,6 +12,9 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeStringify from 'rehype-stringify';
 import { visit } from 'unist-util-visit';
 import type { Element } from 'hast';
+import { rehypeExtractHeadings } from './extractHeadings';
+import { rehypeExtractReferences } from './extractReferences';
+import type { Heading, Reference } from '@/lib/notion/types';
 
 /**
  * 이미지에 에러 핸들링 추가하는 rehype plugin
@@ -42,9 +45,21 @@ function rehypeImageErrorHandler() {
 }
 
 /**
- * Markdown을 HTML로 변환
+ * Markdown 변환 결과
  */
-export async function markdownToHtml(markdown: string): Promise<string> {
+export interface MarkdownResult {
+  html: string;
+  headings: Heading[];
+  references: Reference[];
+}
+
+/**
+ * Markdown을 HTML로 변환하고 heading, references 추출
+ */
+export async function markdownToHtml(markdown: string): Promise<MarkdownResult> {
+  const headings: Heading[] = [];
+  const references: Reference[] = [];
+
   const result = await unified()
     .use(remarkParse) // Markdown 파싱
     .use(remarkGfm) // GitHub Flavored Markdown 지원
@@ -56,10 +71,16 @@ export async function markdownToHtml(markdown: string): Promise<string> {
         className: ['anchor'],
       },
     }) // 헤딩에 링크 추가
+    .use(rehypeExtractReferences(references)) // references 추출 및 제거 (heading 추출 전에 실행)
+    .use(rehypeExtractHeadings(headings)) // heading 추출 (참고 섹션 제거 후 실행)
     .use(rehypeImageErrorHandler) // 이미지 에러 핸들링
     .use(rehypeHighlight) // 코드 하이라이팅
     .use(rehypeStringify) // HTML 문자열로 변환
     .process(markdown);
 
-  return String(result);
+  return {
+    html: String(result),
+    headings,
+    references,
+  };
 }
