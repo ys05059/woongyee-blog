@@ -133,11 +133,6 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
     }
   }, [activeId, getAncestorIds]);
 
-  // Early return은 모든 hooks 이후에
-  if (headings.length === 0) {
-    return null;
-  }
-
   // 표시할 heading 필터링: 부모가 없거나 모든 조상이 확장되어 있으면 표시
   const visibleHeadings = useMemo(() => {
     return headingNodes.filter(node => {
@@ -149,6 +144,11 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
       return ancestors.every(ancestorId => expandedIds.has(ancestorId));
     });
   }, [headingNodes, expandedIds, getAncestorIds]);
+
+  // Early return: headings가 없으면 렌더링하지 않음
+  if (headings.length === 0) {
+    return null;
+  }
 
   return (
     <nav className="space-y-1">
